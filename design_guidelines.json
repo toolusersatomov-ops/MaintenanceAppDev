@@ -1,0 +1,140 @@
+{
+  "theme": "LIGHT",
+  "archetype": "1 (Organic & Earthy - Modified to TARE Brand Specs)",
+  "brand_principles": "Measured Transparency - numbers/data highly visible, precise, minimalist, warm-neutral, sophisticated, not 'cold sci-fi' or 'clinical white'.",
+  "typography": {
+    "font_families": {
+      "display_headline": "'Archivo', sans-serif",
+      "body_ui": "'Inter', sans-serif",
+      "numbers_data": "'Space Mono', monospace"
+    },
+    "scale": {
+      "h1": "text-3xl sm:text-4xl font-bold tracking-tight text-ink",
+      "h2": "text-2xl sm:text-3xl font-semibold tracking-tight text-ink",
+      "h3": "text-xl sm:text-2xl font-medium text-ink",
+      "h4": "text-lg sm:text-xl font-medium text-ink",
+      "body": "text-base text-ink leading-relaxed",
+      "small": "text-sm text-ink/80",
+      "data_large": "text-3xl sm:text-4xl font-['Space_Mono'] font-bold text-ink",
+      "data_medium": "text-xl sm:text-2xl font-['Space_Mono'] font-bold text-ink",
+      "data_small": "text-sm font-['Space_Mono'] text-ink"
+    },
+    "google_fonts_url": "https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap"
+  },
+  "colors": {
+    "background": {
+      "base": "#F4EFE6",
+      "description": "Bone - Primary background for the entire app"
+    },
+    "surface": {
+      "card": "#E6DBC7",
+      "description": "Oat - Used for cards, panels, sidebars, and isolated surfaces"
+    },
+    "border": {
+      "divider": "#C9BCA8",
+      "rule": "#B08866",
+      "description": "Stone for subtle dividers/tints, Clay for warm rules and structural borders"
+    },
+    "text": {
+      "primary": "#241E18",
+      "secondary": "#4A3F35",
+      "description": "Ink for all primary text, secondary is a lighter derivation of Ink"
+    },
+    "accent": {
+      "primary": "#9E2B4E",
+      "hover": "#7A203B",
+      "description": "Beet - Single accent color for primary CTAs, active states, and highlights"
+    },
+    "status": {
+      "success": "#2E7D32",
+      "warning": "#D84315",
+      "danger": "#9E2B4E",
+      "info": "#0277BD",
+      "description": "Traffic-light system for badges/alerts ensuring WCAG AA contrast against Bone/Oat"
+    }
+  },
+  "layout_and_spacing": {
+    "spacing_scale": "Tailwind defaults (p-2, p-4, p-6, p-8) but applied generously. Cards should have minimum p-6 internal padding.",
+    "dashboard_grid": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+    "mobile_first": "Ensure all tap targets (buttons, list items) are at least 44x44px. Sidebar collapses on mobile into a hamburger menu."
+  },
+  "components": {
+    "sidebar": {
+      "style": "bg-[#E6DBC7] border-r border-[#C9BCA8]",
+      "nav_links": "text-[#241E18] hover:bg-[#F4EFE6]",
+      "active_link": "bg-[#F4EFE6] border-l-4 border-[#9E2B4E] font-medium"
+    },
+    "cards": {
+      "style": "bg-[#E6DBC7] border border-[#B08866] rounded-md shadow-sm",
+      "header": "border-b border-[#C9BCA8] pb-3 mb-4",
+      "usage": "Use for KPI widgets, machine status, user profiles, and form containers."
+    },
+    "buttons": {
+      "primary": "bg-[#9E2B4E] text-[#F4EFE6] hover:bg-[#7A203B] rounded-md px-6 py-3 font-medium transition-colors",
+      "secondary": "bg-transparent border border-[#B08866] text-[#241E18] hover:bg-[#C9BCA8] rounded-md px-6 py-3 font-medium transition-colors",
+      "field_ops_large": "w-full py-4 text-lg font-bold min-h-[60px] flex items-center justify-center gap-2 rounded-md"
+    },
+    "tables": {
+      "wrapper": "overflow-x-auto w-full bg-[#E6DBC7] border border-[#C9BCA8] rounded-md",
+      "header": "bg-[#C9BCA8] text-[#241E18] font-semibold text-sm text-left py-3 px-4",
+      "row": "border-b border-[#C9BCA8] hover:bg-[#F4EFE6] transition-colors",
+      "cell": "py-3 px-4 text-sm text-[#241E18]",
+      "numbers": "font-['Space_Mono'] tracking-tight"
+    },
+    "badges": {
+      "base": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border",
+      "running": "bg-[#2E7D32]/10 text-[#2E7D32] border-[#2E7D32]/20",
+      "warning": "bg-[#D84315]/10 text-[#D84315] border-[#D84315]/20",
+      "danger": "bg-[#9E2B4E]/10 text-[#9E2B4E] border-[#9E2B4E]/20"
+    },
+    "timeline_tracker": {
+      "container": "relative pl-8 border-l-2 border-[#C9BCA8] space-y-6",
+      "node_completed": "absolute -left-[9px] w-4 h-4 rounded-full bg-[#9E2B4E] border-2 border-[#E6DBC7]",
+      "node_pending": "absolute -left-[9px] w-4 h-4 rounded-full bg-[#C9BCA8] border-2 border-[#E6DBC7]",
+      "content": "text-sm text-[#241E18]"
+    },
+    "forms": {
+      "input": "w-full bg-[#F4EFE6] border border-[#B08866] rounded-md px-4 py-2 text-[#241E18] focus:outline-none focus:ring-2 focus:ring-[#9E2B4E]/50 focus:border-[#9E2B4E]",
+      "label": "block text-sm font-medium text-[#241E18] mb-1"
+    },
+    "machine_control_center": {
+      "ingredient_bar_bg": "w-full h-4 bg-[#C9BCA8] rounded-full overflow-hidden",
+      "ingredient_bar_fill": "h-full bg-[#9E2B4E] transition-all duration-500",
+      "data_display": "font-['Space_Mono'] text-lg"
+    }
+  },
+  "icons": {
+    "library": "lucide-react",
+    "usage": "Use crisp, minimalist icons. Avoid heavy filled icons; prefer stroke icons that match the Inter body font weight."
+  },
+  "images": {
+    "usage_rules": "Minimal imagery. Focus on data. If user avatars or machine placeholders are needed, use the URLs below.",
+    "image_urls": [
+      {
+        "url": "https://images.pexels.com/photos/31895331/pexels-photo-31895331.jpeg",
+        "description": "Vending machine placeholder",
+        "category": "machine_placeholder"
+      },
+      {
+        "url": "https://images.pexels.com/photos/4484071/pexels-photo-4484071.jpeg",
+        "description": "Worker avatar placeholder for staff profiles",
+        "category": "user_avatar"
+      }
+    ]
+  },
+  "accessibility_and_motion": {
+    "contrast": "All text combinations provided (Ink on Bone, Ink on Oat, Bone on Beet) exceed WCAG AA 4.5:1 ratio.",
+    "testing_attributes": "All interactive elements MUST include data-testid attributes (e.g., data-testid='submit-btn').",
+    "motion": "Keep animations functional. Fast hover states (150ms). Modals and sidebars slide in smoothly. No extravagant 3D or parallax."
+  },
+  "instructions_to_main_agent": [
+    "Load Google Fonts for Archivo, Inter, and Space Mono in the main HTML.",
+    "Configure Tailwind config with the custom colors: bone (#F4EFE6), oat (#E6DBC7), stone (#C9BCA8), clay (#B08866), ink (#241E18), beet (#9E2B4E).",
+    "Set background color of the body to Bone.",
+    "Implement the left sidebar for navigation, rendering role-specific items dynamically.",
+    "Build the Machine Control Center using the graphical ingredient level bars as described.",
+    "Ensure all numerical data, table cell numbers, and badge counts use the Space Mono font class.",
+    "Use Lucide-React icons for UI elements like QR scan (QrCode), camera (Camera), and table actions.",
+    "Ensure the layout is highly responsive. The app is heavily used by Field Ops on mobile, so make action buttons large and reachable."
+  ]
+}
