@@ -60,7 +60,7 @@ async def pickup_scan(body: QrBody, user: dict = Depends(require_roles(*ANY_OPER
     if task["status"] == "Picked":
         raise HTTPException(status_code=400, detail="This item has already been Picked")
     if task["status"] != "Ready for Pickup":
-        raise HTTPException(status_code=400, detail="Kitchen has not marked this bin Saved / Ready for Pickup yet")
+        raise HTTPException(status_code=400, detail="Kitchen preparation is not ready yet.")
 
     await db.pickup_tasks.update_one({"id": task["id"]}, {"$set": {"status": "Picked"}})
     await db.saved_bins.update_one({"pickup_task_id": task["id"]}, {"$set": {"status": "Picked"}})

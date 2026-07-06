@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dumbbell, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,10 +33,10 @@ export default function Login() {
       <div className="w-full max-w-md animate-in fade-in duration-500">
         <div className="text-center mb-6">
           <div className="inline-flex h-14 w-14 rounded-full bg-beet items-center justify-center mb-3">
-            <Dumbbell className="h-7 w-7 text-bone" />
+            <span className="font-display text-2xl font-bold text-bone lowercase">t</span>
           </div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink">Protein Hulk</h1>
-          <p className="text-sm text-ink/60">Maintenance App</p>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink lowercase">tare</h1>
+          <p className="text-sm text-ink/60 tracking-wide">Measured to the gram. &middot; Maintenance App</p>
         </div>
         <Card className="bg-oat border-clay/40 shadow-lg">
           <CardHeader>
@@ -63,7 +63,7 @@ export default function Login() {
                   id="password"
                   type="password"
                   data-testid="login-password-input"
-                  placeholder="\u2022\u2022\u2022\u2022"
+                  placeholder="••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-bone"

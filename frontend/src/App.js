@@ -29,6 +29,7 @@ import OpsNotifications from "@/pages/operations/Notifications";
 import SupDashboard from "@/pages/supervisor/Dashboard";
 import MachineControlCenter from "@/pages/supervisor/MachineControlCenter";
 import Alerts from "@/pages/supervisor/Alerts";
+import AlertDetail from "@/pages/supervisor/AlertDetail";
 import PreScheduleTasks from "@/pages/supervisor/PreScheduleTasks";
 import PreScheduleBulk from "@/pages/supervisor/PreScheduleBulk";
 import TaskAssignment from "@/pages/supervisor/TaskAssignment";
@@ -63,18 +64,7 @@ import MSReports from "@/pages/maintSup/Reports";
 import Escalations from "@/pages/maintSup/Escalations";
 import MSNotifications from "@/pages/maintSup/Notifications";
 
-import AdminDashboard from "@/pages/admin/Dashboard";
-import UserManagement from "@/pages/admin/UserManagement";
-import RolePermissions from "@/pages/admin/RolePermissions";
-import MachineMaster from "@/pages/admin/MachineMaster";
-import IngredientMaster from "@/pages/admin/IngredientMaster";
-import RecipeMaster from "@/pages/admin/RecipeMaster";
-import MaintenanceMaster from "@/pages/admin/MaintenanceMaster";
-import SparePartsMaster from "@/pages/admin/SparePartsMaster";
-import ReportsHub from "@/pages/admin/ReportsHub";
-import AuditLogs from "@/pages/admin/AuditLogs";
-import SystemSettings from "@/pages/admin/SystemSettings";
-import MockDataManagement from "@/pages/admin/MockDataManagement";
+import AdminNotAvailable from "@/pages/RoleNotAvailable";
 
 function ProtectedRoute({ roles, children }) {
   const { user } = useAuth();
@@ -120,6 +110,7 @@ function AppRoutes() {
         <Route path="/supervisor/dashboard" element={<SupDashboard />} />
         <Route path="/supervisor/machine-control-center" element={<MachineControlCenter />} />
         <Route path="/supervisor/alerts" element={<Alerts />} />
+        <Route path="/supervisor/alert/:id" element={<AlertDetail />} />
         <Route path="/supervisor/pre-schedule-tasks" element={<PreScheduleTasks />} />
         <Route path="/supervisor/pre-schedule-bulk" element={<PreScheduleBulk />} />
         <Route path="/supervisor/task-assignment" element={<TaskAssignment />} />
@@ -160,18 +151,7 @@ function AppRoutes() {
       </Route>
 
       <Route element={<ProtectedRoute roles={["admin"]}><DashboardLayout /></ProtectedRoute>}>
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/users" element={<UserManagement />} />
-        <Route path="/admin/role-permissions" element={<RolePermissions />} />
-        <Route path="/admin/machine-master" element={<MachineMaster />} />
-        <Route path="/admin/ingredient-master" element={<IngredientMaster />} />
-        <Route path="/admin/recipe-master" element={<RecipeMaster />} />
-        <Route path="/admin/maintenance-master" element={<MaintenanceMaster />} />
-        <Route path="/admin/spare-parts-master" element={<SparePartsMaster />} />
-        <Route path="/admin/reports-hub" element={<ReportsHub />} />
-        <Route path="/admin/audit-logs" element={<AuditLogs />} />
-        <Route path="/admin/system-settings" element={<SystemSettings />} />
-        <Route path="/admin/mock-data" element={<MockDataManagement />} />
+        <Route path="/admin/dashboard" element={<AdminNotAvailable />} />
       </Route>
 
       <Route path="/" element={user ? <Navigate to={ROLE_HOME[user.role] || "/login"} replace /> : <Navigate to="/login" replace />} />

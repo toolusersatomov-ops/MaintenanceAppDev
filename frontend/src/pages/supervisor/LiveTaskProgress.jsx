@@ -7,7 +7,12 @@ import api from "@/lib/api";
 
 export default function LiveTaskProgress() {
   const [items, setItems] = useState([]);
-  useEffect(() => { api.get("/supervisor/live-task-progress").then(({ data }) => setItems(data)); }, []);
+  useEffect(() => {
+    const load = () => api.get("/supervisor/live-task-progress").then(({ data }) => setItems(data));
+    load();
+    const interval = setInterval(load, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div data-testid="live-task-progress-page">

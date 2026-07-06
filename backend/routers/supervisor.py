@@ -78,17 +78,81 @@ async def kitchen_preparation_status(user: dict = Depends(get_current_user)):
 
 
 @router.get("/operations-staff-tasks")
-async def operations_staff_tasks(user: dict = Depends(get_current_user)):
-    pickup = await db.pickup_tasks.find().sort("created_at", -1).to_list(1000)
-    bin_replacement = await db.bin_replacement_tasks.find().sort("created_at", -1).to_list(1000)
-    cleaning = await db.cleaning_tasks.find().sort("created_at", -1).to_list(1000)
-    dirty = await db.dirty_bin_returns.find().sort("returned_at", -1).to_list(1000)
+async def operations_staff_tasks(machine_id: Optional[str] = None, status: Optional[str] = None,
+                                  assigned_to: Optional[str] = None, user: dict = Depends(get_current_user)):
+    q = {}
+    if machine_id:
+        q["machine_id"] = machine_id
+    pickup_q = {**q}
+    brt_q = {**q}
+    if status:
+        pickup_q["status"] = status
+        brt_q["status"] = status
+    if assigned_to:
+        pickup_q["assigned_operations_staff"] = assigned_to
+        brt_q["assigned_operations_staff"] = assigned_to
+    pickup = await db.pickup_tasks.find(pickup_q).sort("created_at", -1).to_list(1000)
+    bin_replacement = await db.bin_replacement_tasks.find(brt_q).sort("created_at", -1).to_list(1000)
+    cleaning = await db.cleaning_tasks.find(q).sort("created_at", -1).to_list(1000)
+    dirty = await db.dirty_bin_returns.find(q).sort("returned_at", -1).to_list(1000)
     return {
         "pickup_tasks": serialize_list(pickup),
         "bin_replacement_tasks": serialize_list(bin_replacement),
         "cleaning_tasks": serialize_list(cleaning),
         "dirty_bin_returns": serialize_list(dirty),
     }
+
+
+# ---------------------------------------------------------------------------
+# Task Management: reassign / priority / comment (acts on the bin
+# replacement + linked pickup task as one unit)
+# ---------------------------------------------------------------------------
+class ReassignBody(BaseModel):
+    operations_staff: str
+
+
+@router.post("/tasks/{task_id}/reassign")
+async def reassign_task(task_id: str, body: ReassignBody, user: dict = Depends(require_roles(*ANY_SUPERVISOR))):
+    task = await db.bin_replacement_tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    await db.bin_replacement_tasks.update_one({"id": task_id}, {"$set": {"assigned_operations_staff": body.operations_staff}})
+    if task.get("pickup_task_id"):
+        await db.pickup_tasks.update_one({"id": task["pickup_task_id"]}, {"$set": {"assigned_operations_staff": body.operations_staff}})
+    await log_activity(user["username"], user["role"], "Reassigned task", {"task_id": task_id, "operations_staff": body.operations_staff})
+    from utils import push_notification
+    await push_notification(target_username=body.operations_staff, title="Task Reassigned to You",
+                             message=f"{task['ingredient_name']} bin replacement on {task['machine_label']}", link="/operations/bin-replacement-tasks")
+    return {"message": f"Task reassigned to {body.operations_staff}"}
+
+
+class PriorityBody(BaseModel):
+    priority: str
+
+
+@router.post("/tasks/{task_id}/priority")
+async def set_task_priority(task_id: str, body: PriorityBody, user: dict = Depends(require_roles(*ANY_SUPERVISOR))):
+    task = await db.bin_replacement_tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    await db.bin_replacement_tasks.update_one({"id": task_id}, {"$set": {"priority": body.priority}})
+    await log_activity(user["username"], user["role"], "Updated task priority", {"task_id": task_id, "priority": body.priority})
+    return {"message": f"Priority set to {body.priority}"}
+
+
+class CommentBody(BaseModel):
+    comment: str
+
+
+@router.post("/tasks/{task_id}/comment")
+async def add_task_comment(task_id: str, body: CommentBody, user: dict = Depends(require_roles(*ANY_SUPERVISOR))):
+    task = await db.bin_replacement_tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    entry = {"comment": body.comment, "by": user["username"], "at": now_iso()}
+    await db.bin_replacement_tasks.update_one({"id": task_id}, {"$push": {"comments": entry}})
+    await log_activity(user["username"], user["role"], "Commented on task", {"task_id": task_id, "comment": body.comment})
+    return {"message": "Comment added"}
 
 
 # ---------------------------------------------------------------------------

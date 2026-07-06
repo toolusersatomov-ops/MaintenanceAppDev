@@ -73,18 +73,7 @@ const MENUS = {
     { label: "Notifications", path: "/maintenance-supervisor/notifications", icon: Bell },
   ],
   admin: [
-    { label: "Admin Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
-    { label: "User & Access Management", path: "/admin/users", icon: Users },
-    { label: "Role Permissions", path: "/admin/role-permissions", icon: ShieldCheck },
-    { label: "Machine Master", path: "/admin/machine-master", icon: Cog },
-    { label: "Ingredient Master", path: "/admin/ingredient-master", icon: Boxes },
-    { label: "Recipe Master", path: "/admin/recipe-master", icon: ChefHat },
-    { label: "Maintenance Master", path: "/admin/maintenance-master", icon: Wrench },
-    { label: "Spare Parts Master", path: "/admin/spare-parts-master", icon: PackageSearch },
-    { label: "Reports Hub", path: "/admin/reports-hub", icon: FileBarChart },
-    { label: "Audit Logs", path: "/admin/audit-logs", icon: ScrollText },
-    { label: "System Settings", path: "/admin/system-settings", icon: Settings },
-    { label: "Mock Data Management", path: "/admin/mock-data", icon: Database },
+    { label: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
   ],
 };
 
@@ -111,7 +100,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
         data-testid="app-sidebar"
       >
         <div className="p-5 border-b border-stone">
-          <p className="font-display text-lg font-bold text-ink">Protein Hulk</p>
+          <p className="font-display text-lg font-bold text-ink lowercase">tare</p>
           <p className="text-xs text-ink/60">Maintenance App</p>
         </div>
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">

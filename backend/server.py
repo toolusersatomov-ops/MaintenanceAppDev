@@ -10,7 +10,7 @@ load_dotenv(ROOT_DIR / '.env')
 
 from database import client
 from seed import run_seed
-from routers import auth, catalog, alerts, kitchen, operations, maintenance, admin, reports
+from routers import auth, catalog, alerts, kitchen, operations, maintenance, admin, reports, supervisor
 
 app = FastAPI(title="Protein Hulk Maintenance App")
 
@@ -22,6 +22,7 @@ app.include_router(operations.router)
 app.include_router(maintenance.router)
 app.include_router(admin.router)
 app.include_router(reports.router)
+app.include_router(supervisor.router)
 
 app.add_middleware(
     CORSMiddleware,

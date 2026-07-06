@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import SearchableSelect from "@/components/shared/SearchableSelect";
 import StatusBadge from "@/components/shared/StatusBadge";
-import AlertDetailModal from "@/components/shared/AlertDetailModal";
 import api from "@/lib/api";
 
 function LevelBar({ pct, status }) {
@@ -15,30 +15,26 @@ function LevelBar({ pct, status }) {
 }
 
 export default function MachineControlCenter() {
+  const navigate = useNavigate();
   const [machines, setMachines] = useState([]);
   const [machineId, setMachineId] = useState("");
   const [data, setData] = useState({ grouped: { Liquid: [], Powder: [], Solid: [], Other: [] } });
-  const [alerts, setAlerts] = useState([]);
-  const [selectedAlert, setSelectedAlert] = useState(null);
-  const [staffOptions, setStaffOptions] = useState([]);
 
   useEffect(() => {
     api.get("/catalog/machines").then(({ data }) => { setMachines(data); if (data.length) setMachineId(data[0].id); });
-    api.get("/supervisor/users").then(({ data }) => setStaffOptions(data.filter((u) => u.role === "operations_staff").map((u) => ({ value: u.username, label: `${u.name} (${u.username})` }))));
   }, []);
 
   const load = useCallback(() => {
     if (!machineId) return;
     api.get(`/catalog/machines/${machineId}/slots`).then(({ data }) => setData(data));
-    api.get(`/alerts?machine_id=${machineId}`).then(({ data }) => setAlerts(data));
   }, [machineId]);
   useEffect(() => { load(); }, [load]);
 
   const machine = machines.find((m) => m.id === machineId);
-  const openSlotAlert = (slot) => {
+  const openSlotAlert = async (slot) => {
     if (slot.status === "Normal") return;
-    const alert = alerts.find((a) => a.slot_id === slot.id && a.status !== "Resolved");
-    if (alert) setSelectedAlert(alert);
+    const { data } = await api.post("/alerts/ensure", { machine_id: machineId, slot_id: slot.id });
+    navigate(`/supervisor/alert/${data.id}`);
   };
 
   return (
@@ -79,13 +75,6 @@ export default function MachineControlCenter() {
           </div>
         </div>
       ))}
-      <AlertDetailModal
-        alert={selectedAlert}
-        open={!!selectedAlert}
-        onOpenChange={(v) => !v && setSelectedAlert(null)}
-        operationsStaffOptions={staffOptions}
-        onChanged={() => { load(); setSelectedAlert(null); }}
-      />
     </div>
   );
 }

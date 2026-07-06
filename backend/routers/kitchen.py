@@ -63,9 +63,9 @@ async def scan_bin(req_id: str, body: ScanBinBody, user: dict = Depends(require_
         raise HTTPException(status_code=404, detail="Bin QR not recognized")
     slot = await db.machine_slots.find_one({"id": req["slot_id"]})
     if bin_doc["bin_type"] != slot["slot_type"]:
-        raise HTTPException(status_code=400, detail=f"Bin type ({bin_doc['bin_type']}) does not match slot type ({slot['slot_type']})")
+        raise HTTPException(status_code=400, detail="Scanned bin type does not match the requested slot type.")
     if bin_doc["status"] != "Clean / Ready for Filling":
-        raise HTTPException(status_code=400, detail=f"Bin is not Clean / Ready for Filling (current status: {bin_doc['status']})")
+        raise HTTPException(status_code=400, detail="This bin is not marked clean. Please clean the bin before filling.")
 
     category = slot["slot_type"]
     expiry_date = iso_days(EXPIRY_DAYS.get(category, 14))
@@ -100,10 +100,12 @@ async def save_bin(req_id: str, body: SaveBinBody, user: dict = Depends(require_
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
     bin_doc = await db.bin_storage.find_one({"id": body.bin_id})
-    if not bin_doc or bin_doc["status"] != "Clean / Ready for Filling":
-        raise HTTPException(status_code=400, detail="Bin must be scanned and Clean / Ready for Filling before saving")
+    if not bin_doc:
+        raise HTTPException(status_code=400, detail="Please scan bin QR before saving this preparation.")
+    if bin_doc["status"] != "Clean / Ready for Filling":
+        raise HTTPException(status_code=400, detail="This bin is not marked clean. Please clean the bin before filling.")
     if not body.clean_confirmed:
-        raise HTTPException(status_code=400, detail="Please confirm the bin is clean before saving")
+        raise HTTPException(status_code=400, detail="Please complete all required fields before saving bin details.")
 
     saved_bin_id = new_id()
     await db.saved_bins.insert_one({

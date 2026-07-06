@@ -1,23 +1,21 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import PageHeader from "@/components/shared/PageHeader";
 import StatusBadge from "@/components/shared/StatusBadge";
-import AlertDetailModal from "@/components/shared/AlertDetailModal";
 import { useToast } from "@/hooks/use-toast";
 import api, { formatApiError } from "@/lib/api";
 
 export default function Alerts() {
   const [alerts, setAlerts] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [staffOptions, setStaffOptions] = useState([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const load = () => api.get("/alerts").then(({ data }) => setAlerts(data));
   useEffect(() => {
     load();
-    api.get("/supervisor/users").then(({ data }) => setStaffOptions(data.filter((u) => u.role === "operations_staff").map((u) => ({ value: u.username, label: `${u.name} (${u.username})` }))));
   }, []);
 
   const acknowledge = async (id) => {
@@ -34,7 +32,12 @@ export default function Alerts() {
     <div className="space-y-2">
       {items.length === 0 && <p className="text-sm text-ink/60 py-6 text-center" data-testid="alerts-empty">No alerts in this category.</p>}
       {items.map((a) => (
-        <Card key={a.id} className="bg-oat border-clay/40" data-testid={`alert-row-${a.id}`}>
+        <Card
+          key={a.id}
+          className="bg-oat border-clay/40 cursor-pointer hover:bg-stone/30 transition-colors"
+          data-testid={`alert-row-${a.id}`}
+          onClick={() => navigate(`/supervisor/alert/${a.id}`)}
+        >
           <CardContent className="p-3 flex items-center justify-between gap-3 flex-wrap">
             <div>
               <p className="font-semibold text-sm text-ink">{a.alert_type}: {a.ingredient_name}</p>
@@ -42,8 +45,8 @@ export default function Alerts() {
             </div>
             <div className="flex items-center gap-2">
               <StatusBadge status={a.status} />
-              <Button size="sm" variant="outline" onClick={() => setSelected(a)} data-testid={`view-alert-details-${a.id}`}>View Details</Button>
-              <Button size="sm" variant="ghost" onClick={() => acknowledge(a.id)} data-testid={`acknowledge-alert-${a.id}`}>Acknowledge</Button>
+              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/supervisor/alert/${a.id}`); }} data-testid={`view-alert-details-${a.id}`}>View Details</Button>
+              <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); acknowledge(a.id); }} data-testid={`acknowledge-alert-${a.id}`}>Acknowledge</Button>
             </div>
           </CardContent>
         </Card>
@@ -64,13 +67,6 @@ export default function Alerts() {
         <TabsContent value="Assigned">{renderRows(alerts.filter((a) => a.status === "Assigned"))}</TabsContent>
         <TabsContent value="all">{renderRows(alerts)}</TabsContent>
       </Tabs>
-      <AlertDetailModal
-        alert={selected}
-        open={!!selected}
-        onOpenChange={(v) => !v && setSelected(null)}
-        operationsStaffOptions={staffOptions}
-        onChanged={() => { load(); setSelected(null); }}
-      />
     </div>
   );
 }

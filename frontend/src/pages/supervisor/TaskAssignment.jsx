@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/shared/PageHeader";
 import StatusBadge from "@/components/shared/StatusBadge";
-import AlertDetailModal from "@/components/shared/AlertDetailModal";
 import api from "@/lib/api";
 
 export default function TaskAssignment() {
   const [data, setData] = useState({ open_alerts: [], assigned_alerts: [] });
-  const [selected, setSelected] = useState(null);
-  const [staffOptions, setStaffOptions] = useState([]);
+  const navigate = useNavigate();
 
   const load = () => api.get("/supervisor/task-assignment").then(({ data }) => setData(data));
   useEffect(() => {
     load();
-    api.get("/supervisor/users").then(({ data }) => setStaffOptions(data.filter((u) => u.role === "operations_staff").map((u) => ({ value: u.username, label: `${u.name} (${u.username})` }))));
   }, []);
 
   const Column = ({ title, items, testId }) => (
@@ -31,7 +29,7 @@ export default function TaskAssignment() {
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge status={a.status} />
-                <Button size="sm" variant="outline" onClick={() => setSelected(a)} data-testid={`task-assignment-view-${a.id}`}>View</Button>
+                <Button size="sm" variant="outline" onClick={() => navigate(`/supervisor/alert/${a.id}`)} data-testid={`task-assignment-view-${a.id}`}>View</Button>
               </div>
             </CardContent>
           </Card>
@@ -48,7 +46,6 @@ export default function TaskAssignment() {
         <Column title="Needs Assignment" items={data.open_alerts} testId="needs-assignment-column" />
         <Column title="Assigned" items={data.assigned_alerts} testId="assigned-column" />
       </div>
-      <AlertDetailModal alert={selected} open={!!selected} onOpenChange={(v) => !v && setSelected(null)} operationsStaffOptions={staffOptions} onChanged={() => { load(); setSelected(null); }} />
     </div>
   );
 }

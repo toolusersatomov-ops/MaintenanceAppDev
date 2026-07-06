@@ -33,12 +33,12 @@ async def login(body: LoginBody, response: Response):
     if not verify_password(body.password, user["password_hash"]):
         failed = user.get("failed_attempts", 0) + 1
         update = {"failed_attempts": failed}
-        if failed >= LOCKOUT_THRESHOLD:
+        if failed > LOCKOUT_THRESHOLD:
             update["locked"] = True
         await db.users.update_one({"id": user["id"]}, {"$set": update})
-        if failed >= LOCKOUT_THRESHOLD:
+        if failed > LOCKOUT_THRESHOLD:
             raise HTTPException(status_code=403, detail="Account locked due to multiple failed login attempts. Please contact supervisor.")
-        raise HTTPException(status_code=401, detail=f"Invalid User ID or password. {LOCKOUT_THRESHOLD - failed} attempt(s) remaining before lockout.")
+        raise HTTPException(status_code=401, detail=f"Invalid User ID or password. {LOCKOUT_THRESHOLD + 1 - failed} attempt(s) remaining before lockout.")
 
     await db.users.update_one({"id": user["id"]}, {"$set": {"failed_attempts": 0}})
     token = create_access_token(user["id"], user["username"], user["role"])
