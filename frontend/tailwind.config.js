@@ -7,12 +7,24 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: ['Archivo', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
+        mono: ['Space Mono', 'monospace'],
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)'
       },
       colors: {
+        bone: '#F4EFE6',
+        oat: '#E6DBC7',
+        stone: '#C9BCA8',
+        clay: '#B08866',
+        ink: '#241E18',
+        beet: '#9E2B4E',
+        'beet-hover': '#7A203B',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

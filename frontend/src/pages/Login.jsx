@@ -1,0 +1,93 @@
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Dumbbell, Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { useAuth, ROLE_HOME } from "@/context/AuthContext";
+
+export default function Login() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    const res = await login(username.trim().toLowerCase(), password);
+    setLoading(false);
+    if (res.success) {
+      navigate(ROLE_HOME[res.user.role] || "/login");
+    } else {
+      setError(res.error);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-bone flex items-center justify-center p-4">
+      <div className="w-full max-w-md animate-in fade-in duration-500">
+        <div className="text-center mb-6">
+          <div className="inline-flex h-14 w-14 rounded-full bg-beet items-center justify-center mb-3">
+            <Dumbbell className="h-7 w-7 text-bone" />
+          </div>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink">Protein Hulk</h1>
+          <p className="text-sm text-ink/60">Maintenance App</p>
+        </div>
+        <Card className="bg-oat border-clay/40 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg">Sign In</CardTitle>
+            <CardDescription>Enter your User ID and password to continue</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="username">User ID</Label>
+                <Input
+                  id="username"
+                  data-testid="login-username-input"
+                  placeholder="e.g. kitchen01"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="bg-bone"
+                  autoComplete="username"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  data-testid="login-password-input"
+                  placeholder="\u2022\u2022\u2022\u2022"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-bone"
+                  autoComplete="current-password"
+                />
+              </div>
+              {error && (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2" data-testid="login-error-message">
+                  {error}
+                </p>
+              )}
+              <Button
+                type="submit"
+                disabled={loading || !username || !password}
+                data-testid="login-submit-btn"
+                className="w-full bg-beet hover:bg-beet-hover text-bone h-11 text-base font-semibold"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Sign In
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
