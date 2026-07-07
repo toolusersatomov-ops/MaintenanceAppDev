@@ -7,6 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useAuth, ROLE_HOME } from "@/context/AuthContext";
 
+const DEMO_ACCOUNTS = [
+  { username: "kitchen01", label: "Kitchen Staff" },
+  { username: "operations01", label: "Operations Staff (M001-M003)" },
+  { username: "operations02", label: "Operations Staff (M004-M005)" },
+  { username: "operations_sup01", label: "Operations Supervisor" },
+  { username: "tech01", label: "Maintenance Technician" },
+  { username: "maintenance_sup01", label: "Maintenance Supervisor" },
+  { username: "admin01", label: "Admin" },
+];
+
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -14,6 +24,12 @@ export default function Login() {
   const [error, setError] = useState(null);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const autoFill = (user_id) => {
+    setUsername(user_id);
+    setPassword("1234");
+    setError(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -87,6 +103,24 @@ export default function Login() {
             </form>
           </CardContent>
         </Card>
+
+        <div className="mt-5">
+          <p className="text-xs text-center text-ink/50 mb-2 tracking-wide uppercase">Quick Demo Login (password auto-fills)</p>
+          <div className="grid grid-cols-2 gap-2">
+            {DEMO_ACCOUNTS.map((acc) => (
+              <button
+                key={acc.username}
+                type="button"
+                onClick={() => autoFill(acc.username)}
+                data-testid={`quick-login-${acc.username}`}
+                className="text-left bg-oat hover:bg-stone/40 border border-clay/40 rounded-md px-2.5 py-1.5 transition-colors"
+              >
+                <p className="text-xs font-mono font-semibold text-ink truncate">{acc.username}</p>
+                <p className="text-[11px] text-ink/60 truncate">{acc.label}</p>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

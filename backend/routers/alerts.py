@@ -268,6 +268,10 @@ async def list_pre_schedule_tasks(user: dict = Depends(get_current_user)):
 class BulkItem(BaseModel):
     slot_id: str
     ingredient_code: str
+    priority: str = "Medium"
+    kitchen_required: bool = True
+    comment: Optional[str] = None
+    operations_staff: Optional[str] = None
 
 
 class BulkOrderBody(BaseModel):
@@ -285,13 +289,19 @@ async def place_bulk_order(body: BulkOrderBody, user: dict = Depends(require_rol
     for item in body.items:
         result = await create_replacement_pipeline(
             machine_id=body.machine_id, slot_id=item.slot_id, created_by=user["username"],
-            assigned_operations_staff=body.operations_staff, alert_id=None, source="bulk_order",
+            assigned_operations_staff=item.operations_staff or body.operations_staff, alert_id=None,
+            source="bulk_order", bulk_order_id=order_id, priority=item.priority,
+            comment=item.comment, kitchen_required=item.kitchen_required,
         )
-        created_items.append({"slot_id": item.slot_id, "ingredient_code": item.ingredient_code, **result})
+        created_items.append({
+            "slot_id": item.slot_id, "ingredient_code": item.ingredient_code, "priority": item.priority,
+            "kitchen_required_requested": item.kitchen_required, "comment": item.comment, **result,
+        })
 
     await db.bulk_replacement_orders.insert_one({
-        "id": order_id, "machine_id": body.machine_id, "operations_staff": body.operations_staff,
-        "items": created_items, "status": "Placed", "created_by": user["username"], "created_at": now_iso(),
+        "id": order_id, "machine_id": body.machine_id, "machine_label": machine_label(body.machine_id),
+        "operations_staff": body.operations_staff, "items": created_items, "status": "Placed",
+        "created_by": user["username"], "created_at": now_iso(),
     })
     await log_activity(user["username"], user["role"], "Placed pre-scheduled bulk order",
                         {"machine_id": body.machine_id, "item_count": len(body.items)})

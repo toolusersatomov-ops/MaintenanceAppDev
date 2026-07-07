@@ -83,17 +83,40 @@ export default function PickupList() {
       )}
 
       <div className="space-y-2 mb-4">
-        {items.map((i) => (
-          <Card key={i.id} className="bg-oat border-clay/40" data-testid={`pickup-item-${i.id}`}>
-            <CardContent className="p-3 flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-sm text-ink">{i.ingredient_name}</p>
-                <p className="text-xs text-ink/60 font-mono">{i.bin_id || "Awaiting Kitchen"}</p>
-              </div>
-              <StatusBadge status={i.status} />
-            </CardContent>
-          </Card>
-        ))}
+        {(() => {
+          const bulkGroups = {};
+          const singles = [];
+          items.forEach((i) => {
+            if (i.bulk_order_id) {
+              bulkGroups[i.bulk_order_id] = bulkGroups[i.bulk_order_id] || [];
+              bulkGroups[i.bulk_order_id].push(i);
+            } else {
+              singles.push(i);
+            }
+          });
+          const renderCard = (i) => (
+            <Card key={i.id} className="bg-oat border-clay/40" data-testid={`pickup-item-${i.id}`}>
+              <CardContent className="p-3 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-sm text-ink">{i.ingredient_name}</p>
+                  <p className="text-xs text-ink/60 font-mono">{i.bin_id || "Awaiting Kitchen"}</p>
+                </div>
+                <StatusBadge status={i.status} />
+              </CardContent>
+            </Card>
+          );
+          return (
+            <>
+              {Object.entries(bulkGroups).map(([bulkId, group]) => (
+                <div key={bulkId} className="border border-beet/40 rounded-lg p-3 bg-beet/5 mb-2" data-testid={`pickup-bulk-group-${bulkId}`}>
+                  <p className="text-xs font-mono text-beet font-semibold mb-2">Bulk Order &middot; {group.length} item(s) &middot; {bulkId.slice(0, 8)}</p>
+                  <div className="space-y-2">{group.map(renderCard)}</div>
+                </div>
+              ))}
+              {singles.map(renderCard)}
+            </>
+          );
+        })()}
         {items.length === 0 && <p className="text-sm text-ink/60" data-testid="pickup-list-empty">No pickup items for this machine.</p>}
       </div>
 
