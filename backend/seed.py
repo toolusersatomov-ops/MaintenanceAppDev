@@ -46,6 +46,7 @@ async def seed_users():
             "password_hash": hash_password(u["password"]),
             "role": u["role"],
             "name": u["name"],
+            "email": u.get("email"),
             "assigned_machines": u["assigned_machines"],
             "locked": False,
             "failed_attempts": 0,
@@ -380,6 +381,7 @@ async def seed_settings():
 
 
 async def run_seed():
+    from seed_demo import seed_demo_data
     await seed_users()
     await seed_machines()
     await seed_ingredients()
@@ -389,6 +391,7 @@ async def run_seed():
     await seed_sales()
     await seed_maintenance()
     await seed_settings()
+    await seed_demo_data()
 
 
 async def reset_and_reseed():

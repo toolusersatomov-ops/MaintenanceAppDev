@@ -29,13 +29,13 @@ MACHINE_LOCATION = {m["id"]: m["location"] for m in MACHINES}
 # Users
 # ---------------------------------------------------------------------------
 USERS_SEED = [
-    {"username": "kitchen01", "password": "1234", "role": "kitchen_staff", "name": "Kitchen Staff 01", "assigned_machines": []},
-    {"username": "operations01", "password": "1234", "role": "operations_staff", "name": "Operations Staff 01", "assigned_machines": ["M001", "M002", "M003"]},
-    {"username": "operations02", "password": "1234", "role": "operations_staff", "name": "Operations Staff 02", "assigned_machines": ["M004", "M005"]},
-    {"username": "operations_sup01", "password": "1234", "role": "operations_supervisor", "name": "Operations Supervisor", "assigned_machines": []},
-    {"username": "tech01", "password": "1234", "role": "maintenance_technician", "name": "Technician 01", "assigned_machines": []},
-    {"username": "maintenance_sup01", "password": "1234", "role": "maintenance_supervisor", "name": "Maintenance Supervisor", "assigned_machines": []},
-    {"username": "admin01", "password": "1234", "role": "admin", "name": "Admin", "assigned_machines": []},
+    {"username": "kitchen01", "password": "1234", "role": "kitchen_staff", "name": "Rakesh Kumar", "email": "kitchen01@proteinhulk.com", "assigned_machines": []},
+    {"username": "operations01", "password": "1234", "role": "operations_staff", "name": "Anil Verma", "email": "operations01@proteinhulk.com", "assigned_machines": ["M001", "M002", "M003"]},
+    {"username": "operations02", "password": "1234", "role": "operations_staff", "name": "Suresh Reddy", "email": "operations02@proteinhulk.com", "assigned_machines": ["M004", "M005"]},
+    {"username": "operations_sup01", "password": "1234", "role": "operations_supervisor", "name": "Priya Sharma", "email": "ops_sup@proteinhulk.com", "assigned_machines": []},
+    {"username": "tech01", "password": "1234", "role": "maintenance_technician", "name": "Vikram Singh", "email": "tech01@proteinhulk.com", "assigned_machines": []},
+    {"username": "maintenance_sup01", "password": "1234", "role": "maintenance_supervisor", "name": "Ravi Patel", "email": "maint_sup@proteinhulk.com", "assigned_machines": []},
+    {"username": "admin01", "password": "1234", "role": "admin", "name": "System Admin", "email": "admin@proteinhulk.com", "assigned_machines": []},
 ]
 
 ROLE_LABELS = {

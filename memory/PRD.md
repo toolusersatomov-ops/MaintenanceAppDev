@@ -86,3 +86,13 @@ Supervisor sees Alert → Assign Operations Staff + Create Kitchen Fill Ticket �
 - App-wide `machineLabel(id)` frontend helper (currently backend pre-composes labels server-side, which already satisfies the Global Display Rule — a frontend helper would only be needed if any raw IDs are found rendered without labels in the future).
 - Further polish: Kitchen BinFilling flow field-for-field parity check against the literal spec field list (Machine, Location, Slot ID, Slot Type, Ingredient Name, Required Full Capacity, Unit, Expiry auto, Replacement Due auto) — current implementation covers these but wasn't re-audited field-by-field this session.
 - Bulk Pre-Schedule Replacements (`PreScheduleBulk.jsx` + `/api/bulk-orders`) already exists from an earlier iteration matching the spec's "follow-up" ask — not re-verified this session, worth a smoke test if revisited.
+
+## Demo Scenario Seeding (added 2026-07-07)
+`/app/backend/seed_demo.py` (called from `run_seed`, self-guarded/idempotent per scenario, survives `reset_and_reseed`):
+- Real user profiles: Rakesh Kumar (kitchen01), Anil Verma (operations01), Suresh Reddy (operations02), Priya Sharma (operations_sup01), Vikram Singh (tech01), Ravi Patel (maintenance_sup01), System Admin (admin01) + @proteinhulk.com emails.
+- Bulk Pre-Schedule order on M004 → operations02 (L4 + P1 kitchen-required Pending, S3 auto-fulfilled Ready for Pickup).
+- Mid-flow pre-schedule task M002-L1 Coconut Milk (waiting for kitchen) → operations01.
+- Completed replacement DEMO-BRT-001 (M003 Strawberry) with 8-stage live_task_progress timeline.
+- Cleaning-bin lifecycle: BIN-DEMO-OLD-1 "Washing Pending", BIN-DEMO-OLD-2 "Returned to Kitchen".
+- Machine cleaning: M001 today 3/11 steps done (mock photos), M003 yesterday Completed.
+- Open change request DEMO-CR-001 (kitchen01), 6 recent activity log entries.
