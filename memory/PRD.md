@@ -96,3 +96,7 @@ Supervisor sees Alert → Assign Operations Staff + Create Kitchen Fill Ticket �
 - Cleaning-bin lifecycle: BIN-DEMO-OLD-1 "Washing Pending", BIN-DEMO-OLD-2 "Returned to Kitchen".
 - Machine cleaning: M001 today 3/11 steps done (mock photos), M003 yesterday Completed.
 - Open change request DEMO-CR-001 (kitchen01), 6 recent activity log entries.
+
+## Admin Demo Reset + Demo Script (2026-07-07)
+- `/app/frontend/src/pages/admin/Dashboard.jsx`: Admin Dashboard with "Reset Demo Data" button (POST /api/admin/mock-data/reset → reset_and_reseed → base seed + demo scenarios) and live collection-count grid. Route /admin/dashboard now real (AdminNotAvailable removed).
+- `/app/DEMO_TEST_SCRIPT.md`: full presenter/test script — 8 scenarios (login security, alert→replacement e2e, bulk pre-schedule, machine cleaning, change requests, door control, maintenance, analytics/admin) + regression checklist.

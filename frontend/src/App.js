@@ -64,7 +64,7 @@ import MSReports from "@/pages/maintSup/Reports";
 import Escalations from "@/pages/maintSup/Escalations";
 import MSNotifications from "@/pages/maintSup/Notifications";
 
-import AdminNotAvailable from "@/pages/RoleNotAvailable";
+import AdminDashboard from "@/pages/admin/Dashboard";
 
 function ProtectedRoute({ roles, children }) {
   const { user } = useAuth();
@@ -151,7 +151,7 @@ function AppRoutes() {
       </Route>
 
       <Route element={<ProtectedRoute roles={["admin"]}><DashboardLayout /></ProtectedRoute>}>
-        <Route path="/admin/dashboard" element={<AdminNotAvailable />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Route>
 
       <Route path="/" element={user ? <Navigate to={ROLE_HOME[user.role] || "/login"} replace /> : <Navigate to="/login" replace />} />
