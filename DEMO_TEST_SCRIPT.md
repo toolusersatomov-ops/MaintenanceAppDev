@@ -46,7 +46,7 @@ All passwords: `1234` — or simply click the **quick-login chips** on the Login
 9. **Dirty Bin Return** — the old bin is listed; scan it → **Returned to Kitchen**.
 
 **D. Kitchen closes the loop (kitchen01)**
-10. **Cleaning Bins** — advance the returned bin: Washing Pending → Washed → Drying → Dried → **Clean / Ready for Filling**.
+10. **Cleaning Bins** — read the on-screen Cleaning Guide (6 steps), then click **Mark as Cleaned — Ready for Filling** (one click completes the whole lifecycle).
     - ✅ Bin returns to the spare pool, ready for the next fill.
 
 **E. Supervisor wrap-up**
@@ -100,7 +100,7 @@ All passwords: `1234` — or simply click the **quick-login chips** on the Login
 - [ ] Pickup scan rejects a wrong QR with the exact spec error message.
 - [ ] Replacement flow enforces order: slot scan → old-bin removal → new-bin placement → old-bin scan (accepts literal `AUTO`).
 - [ ] Completing replacement refills slot to 100% and closes the alert.
-- [ ] Dirty bin travels: Returned from Machine → Returned to Kitchen → …→ Clean / Ready for Filling (returns to spare pool).
+- [ ] Dirty bin flow: Returned from Machine → Returned to Kitchen → one-click "Mark as Cleaned" → Clean / Ready for Filling (returns to spare pool); guide steps shown on screen.
 - [ ] Bulk order groups items by order id on Kitchen + Operations pages; kitchen-not-required auto-fulfils when a spare bin exists.
 - [ ] Cleaning checklist blocks completion without a photo; completion stamps machine record.
 - [ ] Email-Kitchen escalation on an alert is only allowed after the alert is 30+ minutes old.

@@ -228,6 +228,24 @@ async def advance_cleaning(return_id: str, user: dict = Depends(require_roles(*A
     return {"message": f"Advanced to {next_stage}", "stage": next_stage}
 
 
+@router.post("/cleaning-bins/{return_id}/complete")
+async def complete_cleaning(return_id: str, user: dict = Depends(require_roles(*ANY_KITCHEN))):
+    """One-click completion: performs the full cleaning lifecycle and marks the bin Clean / Ready for Filling."""
+    item = await db.dirty_bin_returns.find_one({"id": return_id})
+    if not item:
+        raise HTTPException(status_code=404, detail="Record not found")
+    if item.get("status") == "Clean / Ready for Filling":
+        raise HTTPException(status_code=400, detail="Bin is already Clean / Ready for Filling")
+    await db.bin_storage.update_one({"id": item["bin_id"]}, {"$set": {
+        "status": "Clean / Ready for Filling", "previous_ingredient_code": item.get("ingredient_code"),
+        "current_ingredient_code": None, "last_cleaned_date": now_iso(), "location": "Kitchen Storage",
+    }})
+    await db.dirty_bin_returns.update_one({"id": return_id}, {"$set": {"status": "Clean / Ready for Filling"}})
+    await push_progress("dirty_bin_return", return_id, item["machine_id"], "Kitchen Cleaning Completed", by=user["username"])
+    await log_activity(user["username"], user["role"], "Completed bin cleaning (all steps)", {"return_id": return_id, "bin_id": item["bin_id"]})
+    return {"message": f"{item['ingredient_name']} bin marked Clean / Ready for Filling", "stage": "Clean / Ready for Filling"}
+
+
 @router.get("/notifications")
 async def kitchen_notifications(user: dict = Depends(get_current_user)):
     items = await db.notifications.find({"$or": [

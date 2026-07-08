@@ -159,9 +159,9 @@ step_table([
 h2("Part D — Kitchen closes the loop (kitchen01)")
 step_table([
     (15, "Open Cleaning Bins.",
-        "The returned bin appears at stage \u201cReturned to Kitchen\u201d with the full lifecycle strip."),
-    (16, "Click Advance repeatedly: Washing Pending \u2192 Washed \u2192 Drying \u2192 Dried \u2192 Clean / Ready for Filling.",
-        "Each click advances one stage. At the final stage the bin returns to the spare pool (visible in Bin Storage) ready for the next fill."),
+        "The returned bin appears with a read-only 6-step Cleaning Guide (Returned to Kitchen \u2192 Washing \u2192 Washed \u2192 Drying \u2192 Dried \u2192 Clean)."),
+    (16, "Read/follow the guide, then click \u201cMark as Cleaned \u2014 Ready for Filling\u201d (single click).",
+        "All lifecycle steps complete at once. The bin returns to the spare pool (visible in Bin Storage) ready for the next fill."),
 ])
 
 h2("Part E — Supervisor wrap-up (operations_sup01)")
@@ -272,7 +272,7 @@ for item in [
     "Pickup scan rejects a wrong QR with the exact spec error message.",
     "Replacement flow enforces step order; old-bin scan accepts the literal text AUTO.",
     "Completing a replacement refills the slot to 100% and closes the alert.",
-    "Dirty bin lifecycle: Returned from Machine \u2192 Returned to Kitchen \u2192 Washing \u2192 \u2026 \u2192 Clean / Ready for Filling (back in spare pool).",
+    "Dirty bin flow: Returned from Machine \u2192 Returned to Kitchen \u2192 one-click \u201cMark as Cleaned\u201d \u2192 Clean / Ready for Filling (back in spare pool); guide steps shown on screen.",
     "Bulk orders group items by order id on Kitchen and Operations pages; kitchen-not-required auto-fulfils from spare bins.",
     "Cleaning checklist blocks step completion without a photo; full completion stamps the machine record.",
     "Email-Kitchen escalation on an alert is only allowed once the alert is 30+ minutes old.",

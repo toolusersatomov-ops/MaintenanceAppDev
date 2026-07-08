@@ -100,3 +100,7 @@ Supervisor sees Alert → Assign Operations Staff + Create Kitchen Fill Ticket �
 ## Admin Demo Reset + Demo Script (2026-07-07)
 - `/app/frontend/src/pages/admin/Dashboard.jsx`: Admin Dashboard with "Reset Demo Data" button (POST /api/admin/mock-data/reset → reset_and_reseed → base seed + demo scenarios) and live collection-count grid. Route /admin/dashboard now real (AdminNotAvailable removed).
 - `/app/DEMO_TEST_SCRIPT.md`: full presenter/test script — 8 scenarios (login security, alert→replacement e2e, bulk pre-schedule, machine cleaning, change requests, door control, maintenance, analytics/admin) + regression checklist.
+
+## Cleaning Bins One-Click (2026-07-08)
+- Kitchen Cleaning Bins now shows a read-only 6-step Cleaning Guide per bin + single "Mark as Cleaned — Ready for Filling" button.
+- New endpoint: POST /api/kitchen/cleaning-bins/{return_id}/complete (jumps straight to Clean / Ready for Filling, updates bin_storage, progress + activity log). Old /advance endpoint still exists (used by e2e).
