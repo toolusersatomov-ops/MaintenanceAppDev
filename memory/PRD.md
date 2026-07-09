@@ -104,3 +104,6 @@ Supervisor sees Alert → Assign Operations Staff + Create Kitchen Fill Ticket �
 ## Cleaning Bins One-Click (2026-07-08)
 - Kitchen Cleaning Bins now shows a read-only 6-step Cleaning Guide per bin + single "Mark as Cleaned — Ready for Filling" button.
 - New endpoint: POST /api/kitchen/cleaning-bins/{return_id}/complete (jumps straight to Clean / Ready for Filling, updates bin_storage, progress + activity log). Old /advance endpoint still exists (used by e2e).
+
+## Cleaning Checklist Update (2026-07-09)
+- Added "Blender Jar / Blender Unit Cleaning" step (after "Blending Area") to CLEANING_STEPS — checklist is now 12 steps. Existing in-progress cleaning tasks patched in DB; new tasks include it automatically.

@@ -66,7 +66,7 @@ All passwords: `1234` — or simply click the **quick-login chips** on the Login
 
 ## Scenario 3 — Machine Cleaning & Sanitization (3 min)
 1. **Operations (operations01)** → **Cleaning & Sanitization** → machine **M001**.
-   - ✅ Today's checklist is already 3/11 done (photos attached) — continue it.
+   - ✅ Today's 12-step checklist (incl. "Blending Area" and "Blender Jar / Blender Unit Cleaning") is already 3/12 done (photos attached) — continue it.
 2. For each remaining step: **upload a photo (mock)**, add a comment, mark complete. Photo is mandatory — try completing without one to show validation.
 3. Complete all steps → task flips to **Completed**, machine's last-cleaning date updates, supervisor gets a notification.
 

@@ -151,6 +151,7 @@ CLEANING_STEPS = [
     "Under Drink Dispensing Mesh",
     "Drink Nozzle / Outlet Area",
     "Blending Area",
+    "Blender Jar / Blender Unit Cleaning",
     "Drip Tray",
     "Waste Collection Area",
     "Bin Slot Area",

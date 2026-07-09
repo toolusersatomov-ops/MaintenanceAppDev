@@ -197,7 +197,7 @@ step_table([
 h1("Scenario 3 — Machine Cleaning & Sanitization (3 min)")
 step_table([
     (1, "Login operations01 \u2192 Cleaning & Sanitization \u2192 select machine M001.",
-        "Today\u2019s 11-step checklist opens \u2014 already 3/11 completed with photos (pre-seeded demo)."),
+        "Today\u2019s 12-step checklist opens (incl. Blending Area + Blender Jar / Blender Unit Cleaning) \u2014 already 3 steps completed with photos (pre-seeded demo)."),
     (2, "On the next step, click Mark Complete WITHOUT uploading a photo.",
         "Validation error: photo is required before completing a step."),
     (3, "Upload a photo (any mock image), add a comment, Mark Complete. Repeat for remaining steps.",
