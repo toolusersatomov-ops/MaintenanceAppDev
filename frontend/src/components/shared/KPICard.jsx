@@ -1,12 +1,15 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-export default function KPICard({ label, value, icon: Icon, accent = false, testId, suffix }) {
+export default function KPICard({ label, value, icon: Icon, accent = false, testId, suffix, to }) {
+  const navigate = useNavigate();
   return (
     <Card
       data-testid={testId || `kpi-${String(label).toLowerCase().replace(/\s+/g, "-")}`}
-      className="bg-oat border-clay/40 hover:shadow-md transition-shadow"
+      onClick={to ? () => navigate(to) : undefined}
+      className={cn("bg-oat border-clay/40 hover:shadow-md transition-shadow", to && "cursor-pointer hover:border-beet/60 active:scale-[0.99]")}
     >
       <CardContent className="p-4 flex items-center justify-between gap-3">
         <div className="min-w-0">

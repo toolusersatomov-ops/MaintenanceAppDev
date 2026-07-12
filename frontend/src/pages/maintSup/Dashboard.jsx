@@ -23,10 +23,10 @@ export default function MSDashboard() {
     <div data-testid="maintenance-supervisor-dashboard-page">
       <PageHeader title="Maintenance Supervisor Dashboard" description="Technical alerts, work orders, and machine health overview" />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard label="Open Technical Alerts" value={alerts.length} icon={ShieldAlert} accent />
-        <KPICard label="Open Work Orders" value={wos.filter((w) => w.status !== "Closed").length} icon={ClipboardList} />
-        <KPICard label="Pending Spare Part Approvals" value={approvals.length} icon={PackageSearch} />
-        <KPICard label="Avg Machine Health Score" value={avgHealth} suffix="/100" icon={Activity} />
+        <KPICard label="Open Technical Alerts" value={alerts.length} icon={ShieldAlert} accent to="/maintenance-supervisor/technical-alerts" />
+        <KPICard label="Open Work Orders" value={wos.filter((w) => w.status !== "Closed").length} icon={ClipboardList} to="/maintenance-supervisor/work-orders" />
+        <KPICard label="Pending Spare Part Approvals" value={approvals.length} icon={PackageSearch} to="/maintenance-supervisor/spare-parts-approvals" />
+        <KPICard label="Avg Machine Health Score" value={avgHealth} suffix="/100" icon={Activity} to="/maintenance-supervisor/machine-health" />
       </div>
     </div>
   );

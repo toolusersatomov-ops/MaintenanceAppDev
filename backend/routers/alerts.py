@@ -56,6 +56,13 @@ async def _enrich_alert(alert: dict) -> dict:
     return out
 
 
+@router.post("/evaluate-consumables")
+async def evaluate_consumables(user: dict = Depends(get_current_user)):
+    from consumables import evaluate_consumable_alerts
+    created = await evaluate_consumable_alerts()
+    return {"message": f"Evaluation complete. {len(created)} new alert(s) created.", "created_ids": created}
+
+
 @router.post("/ensure")
 async def ensure_alert(body: dict, user: dict = Depends(require_roles(*ANY_SUPERVISOR))):
     """Find-or-create an alert for a given machine+slot. Used when a machine
@@ -192,6 +199,29 @@ async def assign_alert(alert_id: str, body: AssignBody, user: dict = Depends(req
         raise HTTPException(status_code=404, detail="Alert not found")
     if alert["status"] != "Open":
         raise HTTPException(status_code=400, detail="This alert has already been assigned")
+    if alert.get("awareness_only"):
+        raise HTTPException(status_code=400, detail="This is an awareness alert. Monitor the level - no replacement task is required yet.")
+
+    related = alert.get("related_slot_ids") or [alert["slot_id"]]
+    if len(related) > 1:
+        # Combined consumable alert (e.g. WWC2+WWC3 or WC1+WC2): one task per can, no kitchen step
+        results = []
+        for slot_id in related:
+            r = await create_replacement_pipeline(
+                machine_id=alert["machine_id"], slot_id=slot_id, created_by=user["username"],
+                assigned_operations_staff=body.operations_staff, alert_id=alert_id, source="alert",
+                kitchen_required=False, comment=alert.get("alert_message"),
+            )
+            results.append(r)
+        await db.alerts.update_one({"id": alert_id}, {"$set": {
+            "status": "Assigned", "assigned_operations_staff": body.operations_staff,
+            "waste_water_status": "Task Assigned" if alert.get("alert_type", "").startswith("Waste Water") else None,
+            "bin_replacement_task_id": results[0]["bin_replacement_task_id"],
+            "pickup_task_id": results[0]["pickup_task_id"],
+            "kitchen_prep_request_id": results[0]["kitchen_prep_request_id"],
+            "related_task_ids": [r["bin_replacement_task_id"] for r in results],
+        }})
+        return {"message": f"Combined task assigned covering {len(related)} cans", "items": results}
 
     result = await create_replacement_pipeline(
         machine_id=alert["machine_id"], slot_id=alert["slot_id"], created_by=user["username"],

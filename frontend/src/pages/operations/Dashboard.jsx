@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Truck, Recycle, Sparkles } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import KPICard from "@/components/shared/KPICard";
 import useAssignedMachines from "@/hooks/useAssignedMachines";
 
 export default function OpsDashboard() {
+  const navigate = useNavigate();
   const { machines } = useAssignedMachines();
   const [totals, setTotals] = useState({ pickup: 0, replacement: 0, cleaningPending: 0 });
 
@@ -21,14 +23,14 @@ export default function OpsDashboard() {
     <div data-testid="operations-dashboard-page">
       <PageHeader title="Operations Staff Dashboard" description="Your assigned machines and pending tasks" />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KPICard label="Assigned Machines" value={machines.length} />
-        <KPICard label="Pending Pickups" value={totals.pickup} icon={Truck} accent />
-        <KPICard label="Pending Bin Replacements" value={totals.replacement} icon={Recycle} />
-        <KPICard label="Cleaning Pending" value={totals.cleaningPending} icon={Sparkles} />
+        <KPICard label="Assigned Machines" value={machines.length} to="/operations/assigned-machines" />
+        <KPICard label="Pending Pickups" value={totals.pickup} icon={Truck} accent to="/operations/pickup-list" />
+        <KPICard label="Pending Bin Replacements" value={totals.replacement} icon={Recycle} to="/operations/bin-replacement-tasks" />
+        <KPICard label="Cleaning Pending" value={totals.cleaningPending} icon={Sparkles} to="/operations/cleaning" />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {machines.map((m) => (
-          <div key={m.id} className="bg-oat border border-clay/40 rounded-lg p-4" data-testid={`ops-dashboard-machine-${m.id}`}>
+          <div key={m.id} onClick={() => navigate(`/operations/bins?machine=${m.id}`)} className="bg-oat border border-clay/40 rounded-lg p-4 cursor-pointer hover:border-beet/60 transition-colors" data-testid={`ops-dashboard-machine-${m.id}`}>
             <p className="font-semibold text-ink">{m.label}</p>
             <p className="text-xs text-ink/60 font-mono">Status: {m.status} &middot; Trolley: {m.trolley_status}</p>
             <p className="text-xs font-mono mt-1">Pickup: {m.pending_pickup_count} &middot; Replacement: {m.pending_bin_replacement_count}</p>

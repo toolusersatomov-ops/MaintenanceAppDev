@@ -260,7 +260,8 @@ def main():
     def check_kitchen_cleaning():
         r = requests.get(f"{BASE}/kitchen/cleaning-bins", headers=auth(kitchen_token))
         r.raise_for_status()
-        items = r.json()
+        payload = r.json()
+        items = payload["items"] if isinstance(payload, dict) else payload
         assert any(d["id"] == dirty_bin_return_id for d in items), "dirty bin not visible in Kitchen Cleaning Bins"
         return items
 

@@ -14,15 +14,14 @@ import api, { formatApiError } from "@/lib/api";
 export default function PickupList() {
   const [params] = useSearchParams();
   const { options } = useAssignedMachines();
-  const [machineId, setMachineId] = useState(params.get("machine") || "");
+  const [machineId, setMachineId] = useState(params.get("machine") || "ALL");
   const [items, setItems] = useState([]);
   const [recentScan, setRecentScan] = useState(null);
   const { toast } = useToast();
 
-  useEffect(() => { if (options.length && !machineId) setMachineId(options[0].value); }, [options, machineId]);
+  const machineOptions = [{ value: "ALL", label: "All Assigned Machines" }, ...options];
 
   const load = useCallback(() => {
-    if (!machineId) return;
     api.get(`/operations/pickup-list?machine_id=${machineId}`).then(({ data }) => setItems(data));
   }, [machineId]);
 
@@ -34,8 +33,9 @@ export default function PickupList() {
   const allPicked = scheduled.length > 0 && scheduled.every((i) => i.status === "Picked");
 
   const handleScan = async (qr_code_id) => {
+    const target = items.find((i) => i.qr_code_id === qr_code_id);
     try {
-      const { data } = await api.post("/operations/pickup-list/scan", { machine_id: machineId, qr_code_id });
+      const { data } = await api.post("/operations/pickup-list/scan", { machine_id: target ? target.machine_id : machineId, qr_code_id });
       toast({ title: data.message });
       if (data.scan_action_id) {
         setRecentScan({ id: data.scan_action_id, qr_code_id, affected_record_type: "pickup_task", status_before: "Ready for Pickup", status_after: "Picked", scanned_by: "you", scanned_at: new Date().toISOString() });
@@ -67,13 +67,20 @@ export default function PickupList() {
     <div data-testid="pickup-list-page">
       <PageHeader title="Pickup List" description="Scan bin QR codes to mark items as Picked" />
       <div className="max-w-md mb-4">
-        <SearchableSelect options={options} value={machineId} onChange={setMachineId} testId="pickup-list-machine-select" />
+        <SearchableSelect options={machineOptions} value={machineId} onChange={setMachineId} testId="pickup-list-machine-select" />
       </div>
 
       <p className="font-mono text-sm mb-3" data-testid="pickup-counter">Picked: {pickedCount} / {scheduled.length}</p>
 
       <div className="mb-4">
-        <QRScanSim options={scannable} onScan={handleScan} testId="pickup-scan-btn" emptyText="No items currently Ready for Pickup." />
+        <QRScanSim
+          options={scannable}
+          onScan={handleScan}
+          triggerLabel="Open Camera / Scan Bin QR"
+          testId="pickup-scan-btn"
+          emptyText="No items currently Ready for Pickup."
+          demoNote="Demo Mode: Select a QR from the list to simulate scanning. In the real machine flow, the camera will scan the physical bin QR created by Kitchen Staff and automatically tick the matching pickup item."
+        />
       </div>
 
       {recentScan && (
@@ -84,15 +91,10 @@ export default function PickupList() {
 
       <div className="space-y-2 mb-4">
         {(() => {
-          const bulkGroups = {};
-          const singles = [];
+          const byMachine = {};
           items.forEach((i) => {
-            if (i.bulk_order_id) {
-              bulkGroups[i.bulk_order_id] = bulkGroups[i.bulk_order_id] || [];
-              bulkGroups[i.bulk_order_id].push(i);
-            } else {
-              singles.push(i);
-            }
+            byMachine[i.machine_id] = byMachine[i.machine_id] || { label: i.machine_label || i.machine_id, items: [] };
+            byMachine[i.machine_id].items.push(i);
           });
           const renderCard = (i) => (
             <Card key={i.id} className="bg-oat border-clay/40" data-testid={`pickup-item-${i.id}`}>
@@ -105,23 +107,44 @@ export default function PickupList() {
               </CardContent>
             </Card>
           );
-          return (
-            <>
-              {Object.entries(bulkGroups).map(([bulkId, group]) => (
-                <div key={bulkId} className="border border-beet/40 rounded-lg p-3 bg-beet/5 mb-2" data-testid={`pickup-bulk-group-${bulkId}`}>
-                  <p className="text-xs font-mono text-beet font-semibold mb-2">Bulk Order &middot; {group.length} item(s) &middot; {bulkId.slice(0, 8)}</p>
-                  <div className="space-y-2">{group.map(renderCard)}</div>
-                </div>
-              ))}
-              {singles.map(renderCard)}
-            </>
-          );
+          const renderGroupItems = (groupItems) => {
+            const bulkGroups = {};
+            const singles = [];
+            groupItems.forEach((i) => {
+              if (i.bulk_order_id) {
+                bulkGroups[i.bulk_order_id] = bulkGroups[i.bulk_order_id] || [];
+                bulkGroups[i.bulk_order_id].push(i);
+              } else {
+                singles.push(i);
+              }
+            });
+            return (
+              <>
+                {Object.entries(bulkGroups).map(([bulkId, group]) => (
+                  <div key={bulkId} className="border border-beet/40 rounded-lg p-3 bg-beet/5 mb-2" data-testid={`pickup-bulk-group-${bulkId}`}>
+                    <p className="text-xs font-mono text-beet font-semibold mb-2">Bulk Order &middot; {group.length} item(s) &middot; {bulkId.slice(0, 8)}</p>
+                    <div className="space-y-2">{group.map(renderCard)}</div>
+                  </div>
+                ))}
+                {singles.map(renderCard)}
+              </>
+            );
+          };
+          if (machineId !== "ALL") {
+            return renderGroupItems(items);
+          }
+          return Object.entries(byMachine).map(([mid, g]) => (
+            <div key={mid} className="mb-3" data-testid={`pickup-machine-group-${mid}`}>
+              <p className="text-sm font-bold text-ink mb-2">{g.label} <span className="text-ink/50 font-mono font-normal">({g.items.length})</span></p>
+              {renderGroupItems(g.items)}
+            </div>
+          ));
         })()}
         {items.length === 0 && <p className="text-sm text-ink/60" data-testid="pickup-list-empty">No pickup items for this machine.</p>}
       </div>
 
-      <Button disabled={!allPicked} onClick={markAll} data-testid="mark-all-picked-btn" className="w-full py-4 text-base font-bold bg-beet hover:bg-beet-hover text-bone">
-        Mark All Scheduled Items Picked
+      <Button disabled={!allPicked || machineId === "ALL"} onClick={markAll} data-testid="mark-all-picked-btn" className="w-full py-4 text-base font-bold bg-beet hover:bg-beet-hover text-bone">
+        {machineId === "ALL" ? "Select a machine to Mark All Picked" : "Mark All Scheduled Items Picked"}
       </Button>
     </div>
   );

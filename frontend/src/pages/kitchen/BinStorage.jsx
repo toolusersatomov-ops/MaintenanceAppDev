@@ -23,7 +23,7 @@ export default function BinStorage() {
                 <p className="font-semibold text-ink">{b.ingredient_name}</p>
                 <StatusBadge status={b.status} />
               </div>
-              <p className="text-xs text-ink/60 font-mono">{b.machine_label}</p>
+              <p className="text-xs text-ink/60 font-mono">Ticket: {(b.kitchen_prep_request_id || b.id || "").slice(0, 8).toUpperCase()} · Bin: {b.bin_id}</p>
               <p className="text-xs font-mono mt-1">Qty: {b.quantity} {b.unit}</p>
               <p className="text-xs font-mono">Expiry: {new Date(b.expiry_date).toLocaleDateString()}</p>
             </CardContent>

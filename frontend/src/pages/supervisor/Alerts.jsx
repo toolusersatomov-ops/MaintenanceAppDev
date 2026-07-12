@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -9,11 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import api, { formatApiError } from "@/lib/api";
 
 export default function Alerts() {
+  const [params] = useSearchParams();
+  const typeFilter = params.get("type") || "";
   const [alerts, setAlerts] = useState([]);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const load = () => api.get("/alerts").then(({ data }) => setAlerts(data));
+  const load = () => api.get("/alerts").then(({ data }) => setAlerts(typeFilter ? data.filter((a) => a.alert_type === typeFilter) : data));
   useEffect(() => {
     load();
   }, []);
@@ -41,7 +43,8 @@ export default function Alerts() {
           <CardContent className="p-3 flex items-center justify-between gap-3 flex-wrap">
             <div>
               <p className="font-semibold text-sm text-ink">{a.alert_type}: {a.ingredient_name}</p>
-              <p className="text-xs text-ink/60 font-mono">{a.machine_label} &middot; Priority: {a.priority}</p>
+              <p className="text-xs text-ink/60 font-mono">{a.machine_label} &middot; Priority: {a.priority}{typeof a.current_level_pct === "number" ? ` · ${a.current_level_pct}%` : ""}</p>
+              {a.alert_message && <p className="text-xs text-beet mt-0.5" data-testid={`alert-message-${a.id}`}>{a.alert_message}</p>}
             </div>
             <div className="flex items-center gap-2">
               <StatusBadge status={a.status} />
@@ -56,7 +59,7 @@ export default function Alerts() {
 
   return (
     <div data-testid="alerts-page">
-      <PageHeader title="Alerts" description="Low stock, near expiry, and replacement due alerts across all machines" />
+      <PageHeader title="Alerts" description={typeFilter ? `Filtered by: ${typeFilter}` : "Low stock, near expiry, waste water, water can and cup dispenser alerts across all machines"} />
       <Tabs defaultValue="Open">
         <TabsList className="bg-oat">
           <TabsTrigger value="Open" data-testid="alerts-tab-open">Open ({alerts.filter((a) => a.status === "Open").length})</TabsTrigger>

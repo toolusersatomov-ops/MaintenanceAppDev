@@ -4,7 +4,7 @@ from typing import Optional
 from datetime import datetime, timezone
 from database import db, serialize, serialize_list
 from auth_utils import get_current_user, require_roles, new_id, now_iso, ANY_OPERATIONS
-from seed_constants import machine_label, CLEANING_STEPS, DOORS
+from seed_constants import machine_label, CLEANING_STEPS, DOORS, CIP_LINES
 from utils import push_progress, push_notification, log_activity, record_scan_action
 
 router = APIRouter(prefix="/api/operations", tags=["operations"])
@@ -42,8 +42,14 @@ async def _touch_machine(machine_id: str):
 # Pickup List
 # ---------------------------------------------------------------------------
 @router.get("/pickup-list")
-async def pickup_list(machine_id: str, user: dict = Depends(get_current_user)):
-    items = await db.pickup_tasks.find({"machine_id": machine_id}).sort("created_at", 1).to_list(200)
+async def pickup_list(machine_id: Optional[str] = None, user: dict = Depends(get_current_user)):
+    if machine_id and machine_id != "ALL":
+        q = {"machine_id": machine_id}
+    else:
+        me = await db.users.find_one({"username": user["username"]})
+        assigned = (me or {}).get("assigned_machines") or []
+        q = {"machine_id": {"$in": assigned}} if assigned else {}
+    items = await db.pickup_tasks.find(q).sort("created_at", 1).to_list(500)
     return serialize_list(items)
 
 
@@ -268,10 +274,15 @@ async def get_cleaning_task(machine_id: str, user: dict = Depends(get_current_us
     if not task:
         task = {
             "id": new_id(), "machine_id": machine_id, "machine_label": machine_label(machine_id), "date": today,
-            "status": "In Progress", "created_at": now_iso(),
+            "status": "In Progress", "created_at": now_iso(), "review_status": "Pending",
             "steps": [{"name": s, "photo": None, "comment": "", "completed": False} for s in CLEANING_STEPS],
+            "cip": {"pump_started_at": None, "pump_stopped_at": None,
+                     "lines": {code: "Not Started" for code, _ in CIP_LINES}},
         }
         await db.cleaning_tasks.insert_one(task)
+    if "cip" not in task:
+        task["cip"] = {"pump_started_at": None, "pump_stopped_at": None, "lines": {code: "Not Started" for code, _ in CIP_LINES}}
+        await db.cleaning_tasks.update_one({"id": task["id"]}, {"$set": {"cip": task["cip"]}})
     return serialize(task)
 
 
@@ -290,17 +301,95 @@ async def complete_cleaning_step(task_id: str, step_index: int, body: CleaningSt
     steps = task["steps"]
     if step_index < 0 or step_index >= len(steps):
         raise HTTPException(status_code=400, detail="Invalid step")
-    steps[step_index] = {"name": steps[step_index]["name"], "photo": body.photo, "comment": body.comment, "completed": True}
+    step_name = steps[step_index]["name"]
+    if step_name == "CIP":
+        cip = task.get("cip", {})
+        if not cip.get("pump_started_at"):
+            raise HTTPException(status_code=400, detail="Start the Hot Water Pump before completing CIP")
+        pending = [c for c, s in cip.get("lines", {}).items() if s != "Completed"]
+        if pending:
+            raise HTTPException(status_code=400, detail=f"Run hot water through all lines first. Pending: {', '.join(pending)}")
+        if not cip.get("pump_stopped_at"):
+            raise HTTPException(status_code=400, detail="Stop the Hot Water Pump before marking CIP complete")
+        await db.cip_records.insert_one({
+            "id": new_id(), "machine_id": task["machine_id"], "machine_label": task["machine_label"],
+            "cleaning_task_id": task_id, "operations_staff": user["username"],
+            "pump_start_time": cip["pump_started_at"], "pump_stop_time": cip["pump_stopped_at"],
+            "lines_completed": list(cip.get("lines", {}).keys()), "photo": body.photo, "comment": body.comment,
+            "completed_at": now_iso(),
+        })
+        await push_progress("cleaning_task", task_id, task["machine_id"], "CIP Completed", by=user["username"])
+    steps[step_index] = {"name": step_name, "photo": body.photo, "comment": body.comment, "completed": True,
+                          "completed_by": user["username"], "completed_at": now_iso()}
     all_done = all(s["completed"] for s in steps)
     update = {"steps": steps}
     if all_done:
         update["status"] = "Completed"
+        update["review_status"] = "Pending Supervisor Review"
+        update["completed_by"] = user["username"]
         await db.machines.update_one({"id": task["machine_id"]}, {"$set": {"last_cleaning_date": now_iso()}})
         await push_progress("cleaning_task", task_id, task["machine_id"], "Cleaning Completed", by=user["username"])
         await push_notification(target_role="operations_supervisor", title="Cleaning Completed",
                                  message=f"Cleaning & Sanitization completed for {task['machine_label']}", link="/supervisor/live-task-progress")
     await db.cleaning_tasks.update_one({"id": task_id}, {"$set": update})
     return {"message": "Step marked complete" + (" - Cleaning fully Completed" if all_done else ""), "all_done": all_done}
+
+
+class CipPumpBody(BaseModel):
+    action: str  # start | stop
+
+
+@router.post("/cleaning/{task_id}/cip/pump")
+async def cip_pump(task_id: str, body: CipPumpBody, user: dict = Depends(require_roles(*ANY_OPERATIONS))):
+    task = await db.cleaning_tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Cleaning task not found")
+    cip = task.get("cip") or {"pump_started_at": None, "pump_stopped_at": None, "lines": {c: "Not Started" for c, _ in CIP_LINES}}
+    if body.action == "start":
+        if cip.get("pump_started_at") and not cip.get("pump_stopped_at"):
+            raise HTTPException(status_code=400, detail="Hot Water Pump is already running")
+        cip["pump_started_at"] = now_iso()
+        cip["pump_stopped_at"] = None
+        msg = "Hot Water Pump started"
+        await push_progress("cleaning_task", task_id, task["machine_id"], "CIP Hot Water Pump Started", by=user["username"])
+    elif body.action == "stop":
+        if not cip.get("pump_started_at"):
+            raise HTTPException(status_code=400, detail="Pump has not been started yet")
+        cip["pump_stopped_at"] = now_iso()
+        msg = "Hot Water Pump stopped"
+        await push_progress("cleaning_task", task_id, task["machine_id"], "CIP Hot Water Pump Stopped", by=user["username"])
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action")
+    await db.cleaning_tasks.update_one({"id": task_id}, {"$set": {"cip": cip}})
+    await log_activity(user["username"], user["role"], f"CIP pump {body.action}", {"cleaning_task_id": task_id, "machine_id": task["machine_id"]})
+    return {"message": msg, "cip": cip}
+
+
+class CipLineBody(BaseModel):
+    line: str
+
+
+@router.post("/cleaning/{task_id}/cip/line")
+async def cip_line(task_id: str, body: CipLineBody, user: dict = Depends(require_roles(*ANY_OPERATIONS))):
+    task = await db.cleaning_tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Cleaning task not found")
+    cip = task.get("cip")
+    if not cip or not cip.get("pump_started_at"):
+        raise HTTPException(status_code=400, detail="Start the Hot Water Pump before running lines")
+    if cip.get("pump_stopped_at"):
+        raise HTTPException(status_code=400, detail="Pump is stopped. Start the pump again to run more lines")
+    lines = cip.get("lines", {})
+    if body.line not in lines:
+        raise HTTPException(status_code=400, detail="Invalid line")
+    current = lines[body.line]
+    nxt = {"Not Started": "Running", "Running": "Completed", "Completed": "Completed"}[current]
+    if current == "Completed":
+        raise HTTPException(status_code=400, detail=f"{body.line} is already Completed")
+    lines[body.line] = nxt
+    cip["lines"] = lines
+    await db.cleaning_tasks.update_one({"id": task_id}, {"$set": {"cip": cip}})
+    return {"message": f"{body.line}: {nxt}", "cip": cip}
 
 
 # ---------------------------------------------------------------------------

@@ -14,13 +14,22 @@ from seed_constants import (
 
 RNG = random.Random(42)
 
-OTHER_CAPACITY_OVERRIDE = {"CAN": 120, "LID": 120, "WC1": 20, "WC2": 20, "SN1": 5, "WWC1": 20, "WWC2": 20, "WWC3": 20}
+OTHER_CAPACITY_OVERRIDE = {"CAN": 200, "LID": 120, "WC1": 20, "WC2": 20, "SN1": 5, "WWC1": 20, "WWC2": 20, "WWC3": 20}
 NO_RECIPE_DEFAULT_CAPACITY = 1000
 
 # Deterministic "problem" slots per warning machine -> (code, issue)
 PROBLEM_SLOTS = {
     "M002": [("L2", "Low Stock"), ("P1", "Near Expiry"), ("S8", "Replacement Due")],
     "M004": [("L1", "Low Stock"), ("P8", "Near Expiry"), ("S5", "Replacement Due")],
+}
+
+# Consumable demo levels (pct) so WWC/WC/Cup alert logic is demonstrable from first login
+CONSUMABLE_LEVELS = {
+    "M001": {"CAN": 12},                       # low cup dispenser
+    "M002": {"WWC1": 40, "WWC2": 92, "WWC3": 91},  # combined waste-water replacement
+    "M003": {"WC1": 10},                       # single low water can
+    "M004": {"WWC1": 35, "WWC2": 90},          # waste-water awareness only
+    "M005": {"WC1": 12, "WC2": 8},             # combined low water cans
 }
 
 
@@ -57,12 +66,15 @@ async def seed_users():
 
 async def seed_machines():
     for m in MACHINES:
-        await db.machines.update_one({"id": m["id"]}, {"$set": {
-            "id": m["id"], "location": m["location"], "status": m["status"],
-            "label": machine_label(m["id"]), "assigned_operations_staff": m["assigned_operations_staff"],
-            "last_visit_time": None, "trolley_status": "Empty",
-            "last_cleaning_date": None,
-        }}, upsert=True)
+        await db.machines.update_one({"id": m["id"]}, {
+            "$set": {
+                "id": m["id"], "location": m["location"], "status": m["status"],
+                "label": machine_label(m["id"]), "assigned_operations_staff": m["assigned_operations_staff"],
+            },
+            "$setOnInsert": {
+                "last_visit_time": None, "trolley_status": "Empty", "last_cleaning_date": None,
+            },
+        }, upsert=True)
 
 
 async def seed_ingredients():
@@ -121,6 +133,9 @@ async def seed_slots_and_bins():
             due_days = 14
             qty_ratio = 0.78
             status = "Normal"
+            consumable_pct = CONSUMABLE_LEVELS.get(mid, {}).get(code)
+            if consumable_pct is not None:
+                qty_ratio = consumable_pct / 100.0
             if issue == "Low Stock":
                 qty_ratio = 0.08
                 status = "Low Stock"

@@ -203,7 +203,43 @@ KITCHEN_VISIBLE_STAGES = ["Returned to Kitchen", "Washing Pending", "Washed", "D
 @router.get("/cleaning-bins")
 async def cleaning_bins(user: dict = Depends(get_current_user)):
     items = await db.dirty_bin_returns.find({"status": {"$in": KITCHEN_VISIBLE_STAGES}}).sort("returned_at", -1).to_list(500)
-    return serialize_list(items)
+    today = now_iso()[:10]
+    cleaned_today = await db.dirty_bin_returns.count_documents({"status": "Clean / Ready for Filling", "cleaned_at": {"$gte": today}})
+    return {"items": serialize_list(items), "counters": {
+        "total": len(items) + cleaned_today, "cleaned": cleaned_today, "pending": len(items),
+    }}
+
+
+async def _mark_bin_clean(item: dict, username: str, role: str, via: str):
+    await db.bin_storage.update_one({"id": item["bin_id"]}, {"$set": {
+        "status": "Clean / Ready for Filling", "previous_ingredient_code": item.get("ingredient_code"),
+        "current_ingredient_code": None, "last_cleaned_date": now_iso(), "location": "Kitchen Storage",
+    }})
+    await db.dirty_bin_returns.update_one({"id": item["id"]}, {"$set": {
+        "status": "Clean / Ready for Filling", "cleaned_at": now_iso(), "cleaned_by": username,
+    }})
+    await push_progress("dirty_bin_return", item["id"], item["machine_id"], "Kitchen Cleaning Completed", by=username)
+    await push_notification(target_role="operations_supervisor", title="Bin Cleaned",
+                             message=f"{item['ingredient_name']} bin ({item['bin_id']}) cleaned and ready for filling",
+                             link="/supervisor/live-task-progress")
+    await log_activity(username, role, f"Bin marked clean via {via}", {"return_id": item["id"], "bin_id": item["bin_id"]})
+
+
+class CleaningScanBody(BaseModel):
+    qr_code_id: str
+
+
+@router.post("/cleaning-bins/scan")
+async def scan_cleaning_bin(body: CleaningScanBody, user: dict = Depends(require_roles(*ANY_KITCHEN))):
+    """Fast hands-busy flow: scanning a valid dirty bin QR instantly marks it clean."""
+    item = await db.dirty_bin_returns.find_one({"qr_code_id": body.qr_code_id, "status": {"$in": KITCHEN_VISIBLE_STAGES}})
+    if not item:
+        already = await db.dirty_bin_returns.find_one({"qr_code_id": body.qr_code_id, "status": "Clean / Ready for Filling"})
+        if already:
+            raise HTTPException(status_code=400, detail="This bin is already marked clean.")
+        raise HTTPException(status_code=400, detail="Scanned QR does not match any bin pending cleaning.")
+    await _mark_bin_clean(item, user["username"], user["role"], "QR scan")
+    return {"message": "Bin scanned and marked clean.", "bin_id": item["bin_id"], "return_id": item["id"]}
 
 
 @router.post("/cleaning-bins/{return_id}/advance")
@@ -235,14 +271,8 @@ async def complete_cleaning(return_id: str, user: dict = Depends(require_roles(*
     if not item:
         raise HTTPException(status_code=404, detail="Record not found")
     if item.get("status") == "Clean / Ready for Filling":
-        raise HTTPException(status_code=400, detail="Bin is already Clean / Ready for Filling")
-    await db.bin_storage.update_one({"id": item["bin_id"]}, {"$set": {
-        "status": "Clean / Ready for Filling", "previous_ingredient_code": item.get("ingredient_code"),
-        "current_ingredient_code": None, "last_cleaned_date": now_iso(), "location": "Kitchen Storage",
-    }})
-    await db.dirty_bin_returns.update_one({"id": return_id}, {"$set": {"status": "Clean / Ready for Filling"}})
-    await push_progress("dirty_bin_return", return_id, item["machine_id"], "Kitchen Cleaning Completed", by=user["username"])
-    await log_activity(user["username"], user["role"], "Completed bin cleaning (all steps)", {"return_id": return_id, "bin_id": item["bin_id"]})
+        raise HTTPException(status_code=400, detail="This bin is already marked clean.")
+    await _mark_bin_clean(item, user["username"], user["role"], "one-click complete")
     return {"message": f"{item['ingredient_name']} bin marked Clean / Ready for Filling", "stage": "Clean / Ready for Filling"}
 
 

@@ -23,7 +23,7 @@ export default function BinFilling() {
           <Card key={r.id} className="bg-oat border-clay/40" data-testid={`bin-filling-card-${r.id}`}>
             <CardContent className="p-4">
               <p className="font-semibold text-ink">{r.ingredient_name}</p>
-              <p className="text-sm text-ink/70">{r.machine_label}</p>
+              <p className="text-sm text-ink/70 font-mono">Ticket: {(r.id || "").slice(0, 8).toUpperCase()}{r.bulk_order_id ? " · Bulk Order" : ""}</p>
               <BinFillPanel request={r} onDone={load} />
             </CardContent>
           </Card>

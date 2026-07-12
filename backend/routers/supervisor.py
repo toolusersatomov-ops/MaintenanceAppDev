@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from database import db, serialize, serialize_list
 from auth_utils import get_current_user, require_roles, new_id, now_iso, hash_password, ANY_SUPERVISOR
 from seed_constants import ROLE_LABELS, MACHINES
-from utils import log_activity
+from utils import log_activity, push_progress, push_notification
 
 router = APIRouter(prefix="/api/supervisor", tags=["supervisor"])
 
@@ -63,12 +63,159 @@ async def task_assignment_overview(user: dict = Depends(get_current_user)):
 
 
 @router.get("/live-task-progress")
-async def live_task_progress(machine_id: Optional[str] = None, user: dict = Depends(get_current_user)):
+async def live_task_progress(machine_id: Optional[str] = None, ingredient: Optional[str] = None,
+                              ticket: Optional[str] = None, staff: Optional[str] = None,
+                              status: Optional[str] = None, date: Optional[str] = None,
+                              user: dict = Depends(get_current_user)):
     query = {}
     if machine_id:
         query["machine_id"] = machine_id
     items = await db.live_task_progress.find(query).sort("updated_at", -1).to_list(1000)
-    return serialize_list(items)
+
+    enriched = []
+    for it in items:
+        ref_type, ref_id = it.get("ref_type"), it.get("ref_id")
+        info = {"ticket_id": f"TKT-{(ref_id or '')[:8].upper()}", "task_id": ref_id,
+                "ingredient_name": None, "slot_id": None, "slot_type": None,
+                "assigned_operations_staff": None, "created_by": None, "status": None,
+                "kitchen_prep_request_id": None, "pickup_task_id": None, "bin_replacement_task_id": None}
+        ref = None
+        if ref_type == "alert":
+            ref = await db.alerts.find_one({"id": ref_id})
+            if ref:
+                info["bin_replacement_task_id"] = ref.get("bin_replacement_task_id")
+                info["pickup_task_id"] = ref.get("pickup_task_id")
+                info["kitchen_prep_request_id"] = ref.get("kitchen_prep_request_id")
+        elif ref_type == "bin_replacement_task":
+            ref = await db.bin_replacement_tasks.find_one({"id": ref_id})
+            if ref:
+                info["bin_replacement_task_id"] = ref_id
+                info["pickup_task_id"] = ref.get("pickup_task_id")
+        elif ref_type == "dirty_bin_return":
+            ref = await db.dirty_bin_returns.find_one({"id": ref_id})
+        elif ref_type == "cleaning_task":
+            ref = await db.cleaning_tasks.find_one({"id": ref_id})
+            if ref:
+                info["ingredient_name"] = "Machine Cleaning & Sanitization"
+        if ref:
+            info["ingredient_name"] = info["ingredient_name"] or ref.get("ingredient_name")
+            info["slot_id"] = ref.get("slot_id")
+            info["slot_type"] = ref.get("slot_type") or ref.get("bin_type")
+            info["assigned_operations_staff"] = ref.get("assigned_operations_staff") or ref.get("returned_by") or ref.get("completed_by")
+            info["created_by"] = ref.get("created_by")
+            info["status"] = ref.get("status")
+        out = serialize(it)
+        out.update(info)
+        enriched.append(out)
+
+    def keep(e):
+        if ingredient and ingredient.lower() not in (e.get("ingredient_name") or "").lower():
+            return False
+        if ticket and ticket.lower() not in (e.get("ticket_id") or "").lower() and ticket.lower() not in (e.get("task_id") or "").lower():
+            return False
+        if staff and staff != (e.get("assigned_operations_staff") or ""):
+            return False
+        if status and status.lower() not in (e.get("status") or e.get("current_stage") or "").lower():
+            return False
+        if date and not (e.get("updated_at") or "").startswith(date):
+            return False
+        return True
+
+    return [e for e in enriched if keep(e)]
+
+
+CLEANING_DUE_DAYS = 1
+
+
+@router.get("/cleaning-tracking")
+async def cleaning_tracking(machine_id: Optional[str] = None, staff: Optional[str] = None,
+                             status: Optional[str] = None, date: Optional[str] = None,
+                             due: Optional[str] = None, user: dict = Depends(get_current_user)):
+    """Machine Cleaning & Sanitization Tracking: per-machine cleaning state built from
+    Operations Staff cleaning_tasks records."""
+    machines = await db.machines.find().to_list(100)
+    today = datetime.now(timezone.utc).date().isoformat()
+    rows = []
+    for m in machines:
+        if machine_id and m["id"] != machine_id:
+            continue
+        q = {"machine_id": m["id"]}
+        if date:
+            q["date"] = date
+        task = await db.cleaning_tasks.find_one(q, sort=[("date", -1)])
+        last_completed = await db.cleaning_tasks.find_one({"machine_id": m["id"], "status": "Completed"}, sort=[("date", -1)])
+
+        steps = (task or {}).get("steps", [])
+        done = [s for s in steps if s.get("completed")]
+        photo_count = len([s for s in done if s.get("photo")])
+        cleaned_by = (task or {}).get("completed_by") or next((s.get("completed_by") for s in reversed(done) if s.get("completed_by")), None)
+
+        last_date = m.get("last_cleaning_date")
+        next_due = None
+        if last_date:
+            next_due = (datetime.fromisoformat(last_date) + timedelta(days=CLEANING_DUE_DAYS)).isoformat()
+
+        if task and task.get("status") == "Completed":
+            row_status = "Pending Supervisor Review" if task.get("review_status") == "Pending Supervisor Review" else "Completed"
+        elif task and done:
+            row_status = "In Progress"
+        elif next_due and next_due < now_iso():
+            row_status = "Overdue"
+        elif task:
+            row_status = "In Progress" if done else "Not Started"
+        else:
+            row_status = "Overdue" if (not last_date or (next_due and next_due < now_iso())) else "Not Started"
+
+        row = {
+            "machine_id": m["id"], "machine_label": m.get("label") or m["id"],
+            "cleaning_task_id": (task or {}).get("id"), "task_date": (task or {}).get("date"),
+            "last_cleaning_date": last_date, "last_cleaned_by": cleaned_by or ((last_completed or {}).get("completed_by")),
+            "next_cleaning_due": next_due, "status": row_status,
+            "steps_completed": len(done), "steps_pending": max(len(steps) - len(done), 0),
+            "total_steps": len(steps), "photo_proof_count": photo_count,
+            "review_status": (task or {}).get("review_status") or "Pending",
+            "supervisor_comment": (task or {}).get("supervisor_comment"),
+            "is_today": (task or {}).get("date") == today,
+            "steps": serialize(task)["steps"] if task else [],
+            "cip": (serialize(task) or {}).get("cip") if task else None,
+        }
+        if staff and (row["last_cleaned_by"] or "") != staff:
+            continue
+        if status and row["status"] != status:
+            continue
+        if due == "overdue" and row["status"] != "Overdue":
+            continue
+        rows.append(row)
+    return rows
+
+
+class CleaningReviewBody(BaseModel):
+    action: str  # mark_reviewed | escalate | comment
+    comment: Optional[str] = None
+
+
+@router.post("/cleaning-tracking/{task_id}/review")
+async def review_cleaning(task_id: str, body: CleaningReviewBody, user: dict = Depends(get_current_user)):
+    task = await db.cleaning_tasks.find_one({"id": task_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Cleaning task not found")
+    update = {}
+    if body.comment:
+        update["supervisor_comment"] = body.comment
+    if body.action == "mark_reviewed":
+        update["review_status"] = "Reviewed"
+        await push_progress("cleaning_task", task_id, task["machine_id"], "Supervisor Reviewed Cleaning", by=user["username"])
+    elif body.action == "escalate":
+        update["review_status"] = "Escalated"
+        await push_notification(target_role="operations_staff", title="Cleaning Escalated",
+                                 message=f"Supervisor escalated cleaning for {task['machine_label']}: {body.comment or 'please re-check'}",
+                                 link="/operations/cleaning")
+        await push_progress("cleaning_task", task_id, task["machine_id"], "Cleaning Escalated by Supervisor", by=user["username"])
+    elif body.action != "comment":
+        raise HTTPException(status_code=400, detail="Invalid action")
+    await db.cleaning_tasks.update_one({"id": task_id}, {"$set": update})
+    await log_activity(user["username"], user["role"], f"Cleaning review: {body.action}", {"cleaning_task_id": task_id, "comment": body.comment})
+    return {"message": "Saved"}
 
 
 @router.get("/kitchen-preparation-status")

@@ -68,7 +68,7 @@ SOLIDS = [
     ("S7", "Raspberry", "gm"), ("S8", "Strawberry", "gm"), ("S9", "Blueberry", "gm"), ("S10", "Dragon Fruit", "gm"),
 ]
 OTHERS = [
-    ("ICE", "Ice Bin", "gm"), ("CAN", "Can Dispenser", "pcs"), ("LID", "Lid Dispenser", "pcs"),
+    ("ICE", "Ice Bin", "gm"), ("CAN", "Cup Dispenser", "cups"), ("LID", "Lid Dispenser", "pcs"),
     ("WC1", "Water Can WC1", "L"), ("WC2", "Water Can WC2", "L"), ("SN1", "Sanitizer SN1", "L"),
     ("WWC1", "Waste Water Can WWC1", "L"), ("WWC2", "Waste Water Can WWC2", "L"), ("WWC3", "Waste Water Can WWC3", "L"),
 ]
@@ -152,6 +152,7 @@ CLEANING_STEPS = [
     "Drink Nozzle / Outlet Area",
     "Blending Area",
     "Blender Jar / Blender Unit Cleaning",
+    "CIP",
     "Drip Tray",
     "Waste Collection Area",
     "Bin Slot Area",
@@ -159,6 +160,16 @@ CLEANING_STEPS = [
 ]
 
 DOORS = ["Right Door", "Left Door", "Back Door"]
+
+# CIP (Cleaning In Place): hot-water flush lines
+CIP_LINES = [
+    ("L1", "Run Hot Water Through Liquid Line L1"), ("L2", "Run Hot Water Through Liquid Line L2"),
+    ("L3", "Run Hot Water Through Liquid Line L3"), ("L4", "Run Hot Water Through Liquid Line L4"),
+    ("L5", "Run Hot Water Through Liquid Line L5"), ("L6", "Run Hot Water Through Liquid Line L6"),
+    ("L7", "Run Hot Water Through Liquid Line L7"), ("L8", "Run Hot Water Through Liquid Line L8"),
+    ("L9", "Run Hot Water Through Liquid Line L9"), ("L10", "Run Hot Water Through Liquid Line L10"),
+    ("L11", "Run Hot Water Through Water Line / L11"),
+]
 
 # ---------------------------------------------------------------------------
 # Workflow stages (used across live_task_progress / timelines)

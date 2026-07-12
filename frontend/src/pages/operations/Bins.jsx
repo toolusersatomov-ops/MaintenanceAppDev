@@ -33,7 +33,7 @@ export default function Bins() {
 
   return (
     <div data-testid="bins-page">
-      <PageHeader title="Bins" description="Current bin levels for the selected machine" />
+      <PageHeader title="Machine Bin Status" description="Solid, liquid, powder bins and consumable levels for the selected machine" />
       <div className="max-w-md mb-6">
         <SearchableSelect options={options} value={machineId} onChange={setMachineId} testId="bins-machine-select" />
       </div>

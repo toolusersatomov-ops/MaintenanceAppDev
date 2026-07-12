@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import DataTable from "@/components/shared/DataTable";
 import StatusBadge from "@/components/shared/StatusBadge";
 import api from "@/lib/api";
 
 export default function KitchenPreparationStatus() {
+  const [params] = useSearchParams();
+  const statusFilter = params.get("status") || "";
   const [rows, setRows] = useState([]);
-  useEffect(() => { api.get("/supervisor/kitchen-preparation-status").then(({ data }) => setRows(data)); }, []);
+  useEffect(() => { api.get("/supervisor/kitchen-preparation-status").then(({ data }) => setRows(statusFilter ? data.filter((r) => r.status === statusFilter) : data)); }, [statusFilter]);
 
   return (
     <div data-testid="kitchen-preparation-status-page">
-      <PageHeader title="Kitchen Preparation Status" description="Track every kitchen fill ticket end-to-end" />
+      <PageHeader title="Kitchen Preparation Status" description={statusFilter ? `Filtered by status: ${statusFilter}` : "Track every kitchen fill ticket end-to-end"} />
       <DataTable
         testId="kitchen-preparation-status-table"
         columns={[

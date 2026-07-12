@@ -12,7 +12,7 @@ const ACTIONS = [
   { key: "pickup-list", label: "Pickup List", icon: Truck, path: "/operations/pickup-list" },
   { key: "bin-replacement-tasks", label: "Bin Replacement Tasks", icon: Recycle, path: "/operations/bin-replacement-tasks" },
   { key: "cleaning", label: "Cleaning & Sanitization", icon: Sparkles, path: "/operations/cleaning" },
-  { key: "bins", label: "Bins", icon: Warehouse, path: "/operations/bins" },
+  { key: "bins", label: "Machine Bin Status", icon: Warehouse, path: "/operations/bins" },
   { key: "dirty-bin-return", label: "Dirty Bin Return", icon: Recycle, path: "/operations/dirty-bin-return" },
   { key: "replacement-history", label: "Replacement History", icon: History, path: "/operations/replacement-history" },
 ];

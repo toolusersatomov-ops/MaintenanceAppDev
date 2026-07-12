@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 
 // Simulated QR scan: opens a dialog listing valid QR codes to "tap to scan".
 // options: [{qr_code_id, label, sublabel}]
-export default function QRScanSim({ options = [], onScan, triggerLabel = "Open Camera / Scan QR", disabled, testId, large = true, emptyText = "No items available to scan right now." }) {
+export default function QRScanSim({ options = [], onScan, triggerLabel = "Open Camera / Scan QR", disabled, testId, large = true, emptyText = "No items available to scan right now.", demoNote = "Demo Mode: Select a QR from the list to simulate scanning. In the real machine flow, the camera will scan the physical bin QR and automatically update the matching item." }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -25,6 +25,9 @@ export default function QRScanSim({ options = [], onScan, triggerLabel = "Open C
             <DialogTitle className="flex items-center gap-2"><ScanLine className="h-5 w-5 text-beet" /> Simulated QR Scanner</DialogTitle>
             <DialogDescription>Tap a QR code below to simulate scanning it with the camera.</DialogDescription>
           </DialogHeader>
+          {demoNote && (
+            <p className="text-xs text-ink/70 bg-stone/40 border border-stone rounded-md p-2" data-testid="qr-scan-demo-note">{demoNote}</p>
+          )}
           <div className="space-y-2">
             {options.length === 0 && <p className="text-sm text-ink/60 py-4 text-center" data-testid="qr-scan-empty">{emptyText}</p>}
             {options.map((opt) => (

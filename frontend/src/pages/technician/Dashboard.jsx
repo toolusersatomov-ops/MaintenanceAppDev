@@ -19,10 +19,10 @@ export default function TechDashboard() {
     <div data-testid="technician-dashboard-page">
       <PageHeader title="Technician Dashboard" description={`Welcome, ${user.name}`} />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard label="Assigned Work Orders" value={wos.length} icon={ClipboardList} />
-        <KPICard label="Active Repairs" value={wos.filter((w) => !["Closed"].includes(w.status)).length} icon={Wrench} accent />
-        <KPICard label="Spare Part Requests" value={parts.length} icon={PackageSearch} />
-        <KPICard label="Closed Work Orders" value={wos.filter((w) => w.status === "Closed").length} icon={CheckCircle2} />
+        <KPICard label="Assigned Work Orders" value={wos.length} icon={ClipboardList} to="/technician/work-orders" />
+        <KPICard label="Active Repairs" value={wos.filter((w) => !["Closed"].includes(w.status)).length} icon={Wrench} accent to="/technician/breakdown-repair" />
+        <KPICard label="Spare Part Requests" value={parts.length} icon={PackageSearch} to="/technician/spare-parts-request" />
+        <KPICard label="Closed Work Orders" value={wos.filter((w) => w.status === "Closed").length} icon={CheckCircle2} to="/technician/history" />
       </div>
     </div>
   );

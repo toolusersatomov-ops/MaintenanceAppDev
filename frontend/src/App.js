@@ -31,6 +31,7 @@ import MachineControlCenter from "@/pages/supervisor/MachineControlCenter";
 import Alerts from "@/pages/supervisor/Alerts";
 import AlertDetail from "@/pages/supervisor/AlertDetail";
 import PreScheduleTasks from "@/pages/supervisor/PreScheduleTasks";
+import CleaningTracking from "@/pages/supervisor/CleaningTracking";
 import PreScheduleBulk from "@/pages/supervisor/PreScheduleBulk";
 import TaskAssignment from "@/pages/supervisor/TaskAssignment";
 import LiveTaskProgress from "@/pages/supervisor/LiveTaskProgress";
@@ -115,6 +116,7 @@ function AppRoutes() {
         <Route path="/supervisor/pre-schedule-bulk" element={<PreScheduleBulk />} />
         <Route path="/supervisor/task-assignment" element={<TaskAssignment />} />
         <Route path="/supervisor/live-task-progress" element={<LiveTaskProgress />} />
+        <Route path="/supervisor/cleaning-tracking" element={<CleaningTracking />} />
         <Route path="/supervisor/kitchen-preparation-status" element={<KitchenPreparationStatus />} />
         <Route path="/supervisor/operations-staff-tasks" element={<OperationsStaffTasks />} />
         <Route path="/supervisor/reports" element={<SupReports />} />

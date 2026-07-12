@@ -44,6 +44,8 @@ async def root():
 @app.on_event("startup")
 async def startup_event():
     await run_seed()
+    from consumables import evaluate_consumable_alerts
+    await evaluate_consumable_alerts()
     logger.info("Seed data ensured on startup")
 
 
