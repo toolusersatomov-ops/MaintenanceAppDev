@@ -64,11 +64,13 @@ All passwords: `1234` — or simply click the **quick-login chips** on the Login
 5. **Operations (operations02)** → Pickup List: same bulk grouping; the auto-fulfilled item is already pickable.
 6. *(Pre-seeded example: an M004 bulk order with Pomegranate Juice + Vanilla Protein Powder pending and Banana ready is already visible.)*
 
-## Scenario 3 — Machine Cleaning & Sanitization (3 min)
+## Scenario 3 — Machine Cleaning & Sanitization + CIP (4 min)
 1. **Operations (operations01)** → **Cleaning & Sanitization** → machine **M001**.
-   - ✅ Today's 12-step checklist (incl. "Blending Area" and "Blender Jar / Blender Unit Cleaning") is already 3/12 done (photos attached) — continue it.
+   - ✅ Today's 13-step checklist (incl. "Blender Jar / Blender Unit Cleaning" and **CIP**) is already partly done — continue it.
 2. For each remaining step: **upload a photo (mock)**, add a comment, mark complete. Photo is mandatory — try completing without one to show validation.
-3. Complete all steps → task flips to **Completed**, machine's last-cleaning date updates, supervisor gets a notification.
+3. **CIP step**: click **Start Hot Water Pump** → run each line L1–L10 + Water Line/L11 (tap twice: Running → Completed) → **Stop Hot Water Pump** → upload photo → **Mark CIP Complete**. Completing out of order shows validation errors.
+4. Complete all steps → task flips to **Completed**, machine's last-cleaning date updates, supervisor gets a notification.
+5. **Supervisor (operations_sup01)** → **Cleaning & Sanitization Tracking** → per-machine status, step progress + photo proof; open a machine → **Mark Reviewed** or **Escalate Cleaning**.
 
 ## Scenario 4 — Kitchen Change Request (2 min)
 1. **Kitchen** → **Change Requests** — show the open demo request ("quantity overfilled… human error").

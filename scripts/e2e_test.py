@@ -172,6 +172,13 @@ def main():
     step("7a. Operations: Scan pickup bin (matches)", do_scan)
 
     def mark_all():
+        # scan any other Ready for Pickup items on this machine first (e.g. consumable tasks)
+        r = requests.get(f"{BASE}/operations/pickup-list?machine_id={machine_id}", headers=auth(ops_token))
+        r.raise_for_status()
+        for t in r.json():
+            if t["status"] == "Ready for Pickup" and t.get("qr_code_id"):
+                requests.post(f"{BASE}/operations/pickup-list/scan", headers=auth(ops_token),
+                              json={"machine_id": machine_id, "qr_code_id": t["qr_code_id"]})
         r = requests.post(f"{BASE}/operations/pickup-list/mark-all", headers=auth(ops_token), json={"machine_id": machine_id})
         r.raise_for_status()
         return r.json()

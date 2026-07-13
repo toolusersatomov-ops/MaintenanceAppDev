@@ -107,3 +107,19 @@ Supervisor sees Alert → Assign Operations Staff + Create Kitchen Fill Ticket �
 
 ## Cleaning Checklist Update (2026-07-09)
 - Added "Blender Jar / Blender Unit Cleaning" step (after "Blending Area") to CLEANING_STEPS — checklist is now 12 steps. Existing in-progress cleaning tasks patched in DB; new tasks include it automatically.
+
+## Change Note #4 (2026-07-12) - all 16 areas implemented & tested (iteration_2.json: 100%)
+1. Waste water WWC1/2/3: WWC1=transfer can; WWC2>=90% -> awareness-only alert (assign blocked 400); WWC2+WWC3>=90% -> combined 'Waste Water Full' alert, assign creates 2 tasks. consumables.py evaluate_consumable_alerts() runs on startup + POST /api/alerts/evaluate-consumables.
+2. Water cans: <15% single alerts; both low -> 'Low Water Combined' with 2-task assign.
+3. Cup Dispenser (CAN renamed, 200 cups cap), <=15% 'Low Cups' alert. Demo levels seeded per machine (CONSUMABLE_LEVELS in seed.py).
+4. Live Task Progress enriched (ticket_id TKT-, ingredient, slot, staff, status) + 6 filters (machine/ingredient/ticket/staff/status/date).
+5. All dashboards clickable (KPICard `to` prop) -> navigate with query filters (Alerts ?type=, KitchenPrepStatus ?status=).
+6. Kitchen bins show 'Ticket:' not machine identity (BinFilling, BinStorage).
+7. Pickup List: 'All Assigned Machines' default + grouped by machine (backend machine_id optional, scoped to assigned).
+8/9. QRScanSim demoNote prop (demo mode text in modal); no confirm-scan steps (scan auto-updates; optional undo panel kept).
+10. 'Bins' renamed 'Machine Bin Status' (sidebar, page, action cards).
+11. NEW Supervisor page /supervisor/cleaning-tracking (filters, step detail dialog, photo view, comment/mark reviewed/escalate). Backend GET /api/supervisor/cleaning-tracking + POST .../review.
+12. CIP step (13-step checklist now): pump start/stop + 11 lines (Not Started->Running->Completed), validated completion, cip_records collection, CipCard UI in operations Cleaning.
+13. Kitchen menu: Cleaning Bins above Bin Filling.
+14. Kitchen Cleaning Bins: QR scanner on top, scan-to-clean (POST /api/kitchen/cleaning-bins/scan), counters {total,cleaned,pending}, exact spec messages.
+15/16. Steps store completed_by/completed_at; seed_machines no longer wipes last_cleaning_date; e2e_test.py updated (29/29 pass). Tests: /app/backend/tests/test_change_note_4.py (18/18).
