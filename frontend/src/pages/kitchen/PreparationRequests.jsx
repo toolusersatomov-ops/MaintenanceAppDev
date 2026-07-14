@@ -39,14 +39,19 @@ export default function PreparationRequests() {
       }
     });
 
-    const renderCard = (r) => (
+    const renderCard = (r) => {
+      const binType = { L: "Liquid", P: "Powder", S: "Solid" }[(r.ingredient_code || "")[0]] || "Other";
+      return (
       <Card key={r.id} className="bg-oat border-clay/40" data-testid={`prep-request-card-${r.id}`}>
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
               <p className="font-semibold text-ink">{r.ingredient_name}</p>
-              <p className="text-sm text-ink/70">{r.machine_label}</p>
-              <p className="text-xs font-mono text-ink/60 mt-1">Qty: {r.quantity} {r.unit} (auto-calculated, read-only)</p>
+              <p className="text-sm text-ink/70 font-mono">Ticket: {(r.id || "").slice(0, 8).toUpperCase()}</p>
+              <p className="text-xs font-mono text-ink/60 mt-1">
+                Qty: {r.quantity} {r.unit} &middot; Bin Type: {binType} &middot; Priority: {r.priority || "Medium"}
+                {r.required_by ? ` · Due: ${new Date(r.required_by).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
+              </p>
             </div>
             <div className="flex flex-col items-end gap-2">
               <StatusBadge status={r.status} />
@@ -67,7 +72,8 @@ export default function PreparationRequests() {
           )}
         </CardContent>
       </Card>
-    );
+      );
+    };
 
     if (items.length === 0) {
       return <p className="text-sm text-ink/60 py-6 text-center" data-testid="prep-requests-empty">No requests in this category.</p>;

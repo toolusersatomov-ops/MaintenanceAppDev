@@ -123,3 +123,11 @@ Supervisor sees Alert â†’ Assign Operations Staff + Create Kitchen Fill Ticket â
 13. Kitchen menu: Cleaning Bins above Bin Filling.
 14. Kitchen Cleaning Bins: QR scanner on top, scan-to-clean (POST /api/kitchen/cleaning-bins/scan), counters {total,cleaned,pending}, exact spec messages.
 15/16. Steps store completed_by/completed_at; seed_machines no longer wipes last_cleaning_date; e2e_test.py updated (29/29 pass). Tests: /app/backend/tests/test_change_note_4.py (18/18).
+
+## Update Batch (2026-07-14) - 5 items, all verified
+1. Mock data: M002 WWC1=40/WWC2=92/WWC3=91 (combined replacement alert), M004 WWC2=90 (monitoring), M003 SN1=10% -> NEW 'Low Sanitizer' alert type in consumables.py.
+2. Kitchen Preparation Requests: machine removed; shows Ticket ID, Ingredient, Qty, Unit, Bin Type (from code prefix), Priority, Due Time. workflow.py KPRs now store priority + required_by (now+4h). BinFillPanel header machine removed too.
+3. CIP UX: select-one-line flow -> Start Hot Water Pump flushes selected line with water-flow animation (animate-cip-flow in App.css), auto-completes; Stop Pump enabled only after all 11 lines Completed.
+4. CIP photo optional (backend CleaningStepBody.photo Optional, required for all steps EXCEPT CIP).
+5. Bin Filling: 'I confirm the bin is clean' checkbox removed (frontend + backend clean_confirmed validation removed; QR scan validates cleanliness).
+Tested: e2e 29/29 pass, alerts verified via curl, kitchen card + CIP flow verified via browser screenshots.

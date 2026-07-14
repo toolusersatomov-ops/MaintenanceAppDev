@@ -58,26 +58,40 @@ function StepCard({ task, step, index, onRefresh }) {
 function CipCard({ task, step, index, onRefresh }) {
   const [preview, setPreview] = useState(step.photo || null);
   const [comment, setComment] = useState(step.comment || "");
+  const [selectedLine, setSelectedLine] = useState(null);
+  const [flushing, setFlushing] = useState(null);
   const fileRef = useRef(null);
   const { toast } = useToast();
   const cip = task.cip || { pump_started_at: null, pump_stopped_at: null, lines: {} };
   const lines = cip.lines || {};
   const pumpRunning = cip.pump_started_at && !cip.pump_stopped_at;
   const allLinesDone = Object.keys(lines).length > 0 && Object.values(lines).every((s) => s === "Completed");
+  const completedCount = Object.values(lines).filter((s) => s === "Completed").length;
 
-  const pump = async (action) => {
+  const flushSelectedLine = async () => {
+    if (!selectedLine) return;
     try {
-      const { data } = await api.post(`/operations/cleaning/${task.id}/cip/pump`, { action });
-      toast({ title: data.message });
+      if (!pumpRunning) {
+        await api.post(`/operations/cleaning/${task.id}/cip/pump`, { action: "start" });
+      }
+      await api.post(`/operations/cleaning/${task.id}/cip/line`, { line: selectedLine });
+      setFlushing(selectedLine);
+      await new Promise((r) => setTimeout(r, 2500));
+      await api.post(`/operations/cleaning/${task.id}/cip/line`, { line: selectedLine });
+      setFlushing(null);
+      toast({ title: `${lineLabel(selectedLine)} flushed and completed` });
+      setSelectedLine(null);
       onRefresh();
     } catch (e) {
+      setFlushing(null);
       toast({ title: "Failed", description: formatApiError(e), variant: "destructive" });
+      onRefresh();
     }
   };
 
-  const runLine = async (line) => {
+  const stopPump = async () => {
     try {
-      const { data } = await api.post(`/operations/cleaning/${task.id}/cip/line`, { line });
+      const { data } = await api.post(`/operations/cleaning/${task.id}/cip/pump`, { action: "stop" });
       toast({ title: data.message });
       onRefresh();
     } catch (e) {
@@ -87,7 +101,7 @@ function CipCard({ task, step, index, onRefresh }) {
 
   const markComplete = async () => {
     try {
-      await api.post(`/operations/cleaning/${task.id}/steps/${index}`, { photo: preview || "captured", comment });
+      await api.post(`/operations/cleaning/${task.id}/steps/${index}`, { photo: preview, comment });
       toast({ title: "CIP marked complete" });
       onRefresh();
     } catch (e) {
@@ -96,7 +110,6 @@ function CipCard({ task, step, index, onRefresh }) {
   };
 
   const lineLabel = (code) => (code === "L11" ? "Water Line / L11" : `Liquid Line ${code}`);
-  const lineColor = { "Not Started": "bg-stone/50 text-ink/60", Running: "bg-amber-200 text-amber-900", Completed: "bg-green-200 text-green-900" };
 
   return (
     <Card className="bg-oat border-beet/40 sm:col-span-2 lg:col-span-3" data-testid="cip-step-card">
@@ -104,33 +117,54 @@ function CipCard({ task, step, index, onRefresh }) {
         <div className="flex items-center justify-between">
           <div>
             <p className="font-semibold text-sm text-ink">{index + 1}. CIP — Cleaning In Place</p>
-            <p className="text-xs text-ink/60">Flushes internal machine pipes with hot water. Run every liquid line before completing.</p>
+            <p className="text-xs text-ink/60">Select a line, start the hot water pump, and flush lines one by one. ({completedCount}/{Object.keys(lines).length} lines done)</p>
           </div>
           {step.completed && <Check className="h-4 w-4 text-green-600" />}
         </div>
 
         {!step.completed && (
           <>
-            <div className="flex gap-2">
-              <Button size="sm" disabled={!!pumpRunning} onClick={() => pump("start")} data-testid="cip-pump-start-btn" className="bg-beet hover:bg-beet-hover text-bone">
-                Start Hot Water Pump
-              </Button>
-              <Button size="sm" variant="outline" disabled={!pumpRunning} onClick={() => pump("stop")} data-testid="cip-pump-stop-btn">
-                Stop Hot Water Pump
-              </Button>
-              <span className="text-xs font-mono self-center text-ink/60" data-testid="cip-pump-status">
-                Pump: {pumpRunning ? "Running" : cip.pump_stopped_at ? "Stopped" : "Not Started"}
-              </span>
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2" data-testid="cip-lines-grid">
+              {Object.entries(lines).map(([code, lstatus]) => {
+                const done = lstatus === "Completed";
+                const isSelected = selectedLine === code;
+                const isFlushing = flushing === code;
+                return (
+                  <button key={code} disabled={done || !!flushing}
+                          onClick={() => setSelectedLine(isSelected ? null : code)}
+                          data-testid={`cip-line-${code}`}
+                          className={`p-2 rounded-md border text-xs font-medium transition-colors ${
+                            done ? "bg-green-100 border-green-300 text-green-800 cursor-default"
+                            : isFlushing ? "bg-sky-100 border-sky-400 text-sky-800"
+                            : isSelected ? "bg-beet/10 border-beet text-beet"
+                            : "bg-bone border-clay/40 text-ink hover:border-beet/50"}`}>
+                    {code === "L11" ? "Water / L11" : code}
+                    <span className="block text-[10px] font-mono mt-0.5 opacity-70">{done ? "Completed" : isFlushing ? "Running" : lstatus === "Running" ? "Running" : "Not Started"}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2" data-testid="cip-lines-grid">
-              {Object.entries(lines).map(([code, lstatus]) => (
-                <button key={code} onClick={() => lstatus !== "Completed" && runLine(code)} data-testid={`cip-line-${code}`}
-                        className={`text-left p-2 rounded-md border border-clay/40 text-xs transition-colors ${lstatus !== "Completed" && pumpRunning ? "hover:border-beet/60 cursor-pointer" : "cursor-default"}`}>
-                  <p className="font-medium text-ink truncate">Run Hot Water — {lineLabel(code)}</p>
-                  <span className={`inline-block mt-1 px-2 py-0.5 rounded-full font-mono ${lineColor[lstatus]}`}>{lstatus}</span>
-                </button>
-              ))}
+            {flushing && (
+              <div className="rounded-md border border-sky-300 bg-sky-50 p-3" data-testid="cip-flush-animation">
+                <p className="text-xs font-semibold text-sky-800 mb-2">Hot water flowing through {lineLabel(flushing)}…</p>
+                <div className="h-2.5 rounded-full bg-sky-100 overflow-hidden">
+                  <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-sky-300 via-sky-500 to-sky-300 animate-cip-flow" />
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2 items-center">
+              <Button size="sm" disabled={!selectedLine || !!flushing} onClick={flushSelectedLine}
+                      data-testid="cip-pump-start-btn" className="bg-beet hover:bg-beet-hover text-bone">
+                {flushing ? "Flushing…" : selectedLine ? `Start Hot Water Pump — ${lineLabel(selectedLine)}` : "Select a line to flush"}
+              </Button>
+              <Button size="sm" variant="outline" disabled={!allLinesDone || !pumpRunning || !!flushing} onClick={stopPump} data-testid="cip-pump-stop-btn">
+                Stop Hot Water Pump
+              </Button>
+              <span className="text-xs font-mono text-ink/60" data-testid="cip-pump-status">
+                Pump: {pumpRunning ? "Running" : cip.pump_stopped_at ? "Stopped" : "Not Started"}
+              </span>
             </div>
           </>
         )}
@@ -139,9 +173,9 @@ function CipCard({ task, step, index, onRefresh }) {
         <input type="file" accept="image/*" ref={fileRef} className="hidden" onChange={(e) => { const file = e.target.files[0]; if (file) setPreview(URL.createObjectURL(file)); }} data-testid="cip-file-input" />
         <div className="flex flex-wrap gap-2 items-start">
           <Button variant="outline" size="sm" disabled={step.completed} onClick={() => fileRef.current.click()} data-testid="cip-photo-btn">
-            <Camera className="h-4 w-4 mr-2" /> Camera / Upload Photo
+            <Camera className="h-4 w-4 mr-2" /> Photo (optional)
           </Button>
-          <Button size="sm" disabled={!preview || step.completed || !allLinesDone || !cip.pump_stopped_at} onClick={markComplete}
+          <Button size="sm" disabled={step.completed || !allLinesDone || !cip.pump_stopped_at} onClick={markComplete}
                   data-testid="cip-complete-btn" className="bg-beet hover:bg-beet-hover text-bone">
             Mark CIP Complete
           </Button>

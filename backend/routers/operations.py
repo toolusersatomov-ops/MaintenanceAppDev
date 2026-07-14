@@ -287,7 +287,7 @@ async def get_cleaning_task(machine_id: str, user: dict = Depends(get_current_us
 
 
 class CleaningStepBody(BaseModel):
-    photo: str
+    photo: Optional[str] = None
     comment: Optional[str] = ""
 
 
@@ -296,12 +296,12 @@ async def complete_cleaning_step(task_id: str, step_index: int, body: CleaningSt
     task = await db.cleaning_tasks.find_one({"id": task_id})
     if not task:
         raise HTTPException(status_code=404, detail="Cleaning task not found")
-    if not body.photo:
-        raise HTTPException(status_code=400, detail="Photo is required before marking this step complete")
     steps = task["steps"]
     if step_index < 0 or step_index >= len(steps):
         raise HTTPException(status_code=400, detail="Invalid step")
     step_name = steps[step_index]["name"]
+    if not body.photo and step_name != "CIP":
+        raise HTTPException(status_code=400, detail="Photo is required before marking this step complete")
     if step_name == "CIP":
         cip = task.get("cip", {})
         if not cip.get("pump_started_at"):

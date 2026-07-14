@@ -27,7 +27,7 @@ PROBLEM_SLOTS = {
 CONSUMABLE_LEVELS = {
     "M001": {"CAN": 12},                       # low cup dispenser
     "M002": {"WWC1": 40, "WWC2": 92, "WWC3": 91},  # combined waste-water replacement
-    "M003": {"WC1": 10},                       # single low water can
+    "M003": {"WC1": 10, "SN1": 10},            # single low water can + low sanitizer
     "M004": {"WWC1": 35, "WWC2": 90},          # waste-water awareness only
     "M005": {"WC1": 12, "WC2": 8},             # combined low water cans
 }

@@ -68,7 +68,7 @@ All passwords: `1234` — or simply click the **quick-login chips** on the Login
 1. **Operations (operations01)** → **Cleaning & Sanitization** → machine **M001**.
    - ✅ Today's 13-step checklist (incl. "Blender Jar / Blender Unit Cleaning" and **CIP**) is already partly done — continue it.
 2. For each remaining step: **upload a photo (mock)**, add a comment, mark complete. Photo is mandatory — try completing without one to show validation.
-3. **CIP step**: click **Start Hot Water Pump** → run each line L1–L10 + Water Line/L11 (tap twice: Running → Completed) → **Stop Hot Water Pump** → upload photo → **Mark CIP Complete**. Completing out of order shows validation errors.
+3. **CIP step**: select a line (L1–L10 or Water/L11) → **Start Hot Water Pump** → water-flow animation runs and the line completes automatically → repeat per line → **Stop Hot Water Pump** (enabled only when all lines done) → **Mark CIP Complete** (photo optional).
 4. Complete all steps → task flips to **Completed**, machine's last-cleaning date updates, supervisor gets a notification.
 5. **Supervisor (operations_sup01)** → **Cleaning & Sanitization Tracking** → per-machine status, step progress + photo proof; open a machine → **Mark Reviewed** or **Escalate Cleaning**.
 

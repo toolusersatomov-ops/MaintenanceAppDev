@@ -46,7 +46,7 @@ async def evaluate_consumable_alerts():
     machines = await db.machines.find().to_list(100)
     for m in machines:
         mid = m["id"]
-        slots = {s["slot_code"]: s async for s in db.machine_slots.find({"machine_id": mid, "slot_code": {"$in": ["WWC1", "WWC2", "WWC3", "WC1", "WC2", "CAN"]}})}
+        slots = {s["slot_code"]: s async for s in db.machine_slots.find({"machine_id": mid, "slot_code": {"$in": ["WWC1", "WWC2", "WWC3", "WC1", "WC2", "CAN", "SN1"]}})}
 
         # --- Waste water logic: WWC1 is a temporary receiving/transfer can ---
         wwc2, wwc3 = slots.get("WWC2"), slots.get("WWC3")
@@ -101,6 +101,13 @@ async def evaluate_consumable_alerts():
         if can and _pct(can) <= 15:
             if not await _open_alert_exists(mid, "Low Cups"):
                 aid = await _create_alert(mid, "Low Cups", "Cup Dispenser level is low.", can, priority="Medium")
+                created.append(aid)
+
+        # --- Sanitizer logic: low at 15% or below ---
+        sn1 = slots.get("SN1")
+        if sn1 and _pct(sn1) <= 15:
+            if not await _open_alert_exists(mid, "Low Sanitizer"):
+                aid = await _create_alert(mid, "Low Sanitizer", "Sanitizer SN1 level is low. Refill sanitizer.", sn1, priority="Medium")
                 created.append(aid)
 
     return created

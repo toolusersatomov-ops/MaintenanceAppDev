@@ -91,7 +91,6 @@ class SaveBinBody(BaseModel):
     unit: str
     expiry_date: str
     replacement_due_date: str
-    clean_confirmed: bool = False
 
 
 @router.post("/preparation-requests/{req_id}/save-bin")
@@ -104,8 +103,6 @@ async def save_bin(req_id: str, body: SaveBinBody, user: dict = Depends(require_
         raise HTTPException(status_code=400, detail="Please scan bin QR before saving this preparation.")
     if bin_doc["status"] != "Clean / Ready for Filling":
         raise HTTPException(status_code=400, detail="This bin is not marked clean. Please clean the bin before filling.")
-    if not body.clean_confirmed:
-        raise HTTPException(status_code=400, detail="Please complete all required fields before saving bin details.")
 
     saved_bin_id = new_id()
     await db.saved_bins.insert_one({

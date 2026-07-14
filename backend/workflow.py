@@ -5,6 +5,7 @@ from database import db
 from auth_utils import new_id, now_iso
 from seed_constants import machine_label
 from utils import push_progress, push_notification, log_activity
+from datetime import datetime, timezone, timedelta
 
 
 async def create_replacement_pipeline(machine_id: str, slot_id: str, created_by: str,
@@ -42,6 +43,7 @@ async def create_replacement_pipeline(machine_id: str, slot_id: str, created_by:
             "ingredient_code": slot["ingredient_code"], "ingredient_name": slot["ingredient_name"],
             "quantity": slot["capacity"], "unit": slot["unit"], "alert_id": alert_id, "bulk_order_id": bulk_order_id,
             "bin_replacement_task_id": brt_id, "pickup_task_id": pt_id, "status": "Pending",
+            "priority": priority, "required_by": (datetime.now(timezone.utc) + timedelta(hours=4)).isoformat(),
             "created_by": created_by, "requested_at": now_iso(), "bin_id": None,
         })
         pickup_status, bin_id_for_pickup, qr_for_pickup = "Pending Prep", None, None

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import QRScanSim from "@/components/shared/QRScanSim";
@@ -10,7 +9,6 @@ import api, { formatApiError } from "@/lib/api";
 export default function BinFillPanel({ request, onDone }) {
   const [binOptions, setBinOptions] = useState([]);
   const [scanned, setScanned] = useState(null);
-  const [cleanConfirmed, setCleanConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
@@ -38,7 +36,6 @@ export default function BinFillPanel({ request, onDone }) {
       await api.post(`/kitchen/preparation-requests/${request.id}/save-bin`, {
         bin_id: scanned.bin_id, quantity: scanned.quantity, unit: scanned.unit,
         expiry_date: scanned.expiry_date, replacement_due_date: scanned.replacement_due_date,
-        clean_confirmed: cleanConfirmed,
       });
       toast({ title: "Bin saved", description: "Status: Saved / Ready for Pickup" });
       onDone && onDone();
@@ -53,7 +50,7 @@ export default function BinFillPanel({ request, onDone }) {
     <Card className="bg-bone border-clay/40 mt-3" data-testid={`bin-fill-panel-${request.id}`}>
       <CardContent className="p-4 space-y-4">
         <div className="text-sm">
-          <p className="font-semibold text-ink">{request.ingredient_name} for {request.machine_label}</p>
+          <p className="font-semibold text-ink">{request.ingredient_name} &middot; Ticket {(request.id || "").slice(0, 8).toUpperCase()}</p>
           <p className="font-mono text-ink/70">Required Quantity: {request.quantity} {request.unit} (read-only, auto-calculated)</p>
         </div>
 
@@ -80,11 +77,8 @@ export default function BinFillPanel({ request, onDone }) {
               <div><span className="text-ink/60">Expiry Date:</span> {new Date(scanned.expiry_date).toLocaleDateString()}</div>
               <div><span className="text-ink/60">Replacement Due:</span> {new Date(scanned.replacement_due_date).toLocaleDateString()}</div>
             </div>
-            <div className="flex items-center gap-2">
-              <Checkbox id={`clean-${request.id}`} checked={cleanConfirmed} onCheckedChange={setCleanConfirmed} data-testid={`clean-confirm-checkbox-${request.id}`} />
-              <label htmlFor={`clean-${request.id}`} className="text-sm text-ink">I confirm the bin is clean and ready for filling.</label>
-            </div>
-            <Button disabled={!cleanConfirmed || saving} onClick={handleSave} data-testid={`save-bin-btn-${request.id}`} className="bg-beet hover:bg-beet-hover text-bone">
+            <p className="text-xs text-ink/60">Bin cleanliness is validated automatically from the QR scan.</p>
+            <Button disabled={saving} onClick={handleSave} data-testid={`save-bin-btn-${request.id}`} className="bg-beet hover:bg-beet-hover text-bone">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Save Bin Details
             </Button>
           </div>
