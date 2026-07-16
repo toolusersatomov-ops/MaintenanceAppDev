@@ -106,16 +106,14 @@ export default function AlertDetail() {
     }
   };
 
-  const createKitchenTicketOnly = () => act(() => api.post(`/alerts/${id}/create-kitchen-ticket-only`), "Kitchen Fill Ticket created");
-  const assignAndCreate = () => act(() => api.post(`/alerts/${id}/assign`, { operations_staff: staff || staffOptions[0]?.value, create_kitchen_ticket: true }), "Task assigned and Kitchen ticket created");
   const emailKitchen = () => act(() => api.post(`/alerts/${id}/email-kitchen`), "Kitchen staff notified via email (simulated)");
   const closeAlert = () => act(() => api.post(`/alerts/${id}/close`), "Alert closed").then(() => navigate("/supervisor/alerts"));
 
-  const submitAssign = (notify) => {
+  const submitAssign = () => {
     setLoading(true);
-    api.post(`/alerts/${id}/assign-staff-only`, {
-      operations_staff: staff, start_time: startTime || null, due_time: dueTime || null,
-      priority, comment: comment || null, notify,
+    api.post(`/alerts/${id}/assign`, {
+      operations_staff: staff || null, start_time: startTime || null, due_time: dueTime || null,
+      priority, comment: comment || null,
     }).then(({ data }) => {
       toast({ title: data.message });
       setAssignOpen(false);
@@ -173,16 +171,10 @@ export default function AlertDetail() {
         <Button
           disabled={!isOpen || loading}
           onClick={() => setAssignOpen(true)}
-          data-testid="alert-detail-assign-staff-btn"
-          className="bg-ink hover:bg-ink/90 text-bone"
+          data-testid="alert-detail-assign-task-btn"
+          className="bg-beet hover:bg-beet-hover text-bone"
         >
-          Assign Operations Staff
-        </Button>
-        <Button disabled={!isOpen || loading} onClick={createKitchenTicketOnly} data-testid="alert-detail-create-ticket-btn" className="bg-blue-600 hover:bg-blue-700 text-white">
-          Create Kitchen Fill Ticket
-        </Button>
-        <Button disabled={!isOpen || loading} onClick={assignAndCreate} data-testid="alert-detail-assign-and-create-btn" className="bg-green-700 hover:bg-green-800 text-white">
-          Assign and Create Kitchen Ticket
+          Assign Task
         </Button>
         <TooltipProvider>
           <Tooltip>
@@ -211,12 +203,12 @@ export default function AlertDetail() {
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
         <DialogContent className="bg-bone" data-testid="assign-staff-modal">
           <DialogHeader>
-            <DialogTitle>Assign Operations Staff</DialogTitle>
+            <DialogTitle>Assign Task</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-ink/60 mb-1 block">Operations Staff</Label>
-              <SearchableSelect options={staffOptions} value={staff} onChange={setStaff} placeholder="Choose Operations Staff" testId="assign-modal-staff-select" />
+              <Label className="text-xs text-ink/60 mb-1 block">Operations Staff (optional — leave empty to auto-assign)</Label>
+              <SearchableSelect options={staffOptions} value={staff} onChange={setStaff} placeholder="Auto-assign random available staff" testId="assign-modal-staff-select" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -239,11 +231,8 @@ export default function AlertDetail() {
               <Textarea value={comment} onChange={(e) => setComment(e.target.value)} data-testid="assign-modal-comment" placeholder="Optional notes for the assignee" />
             </div>
             <div className="flex gap-2 pt-2">
-              <Button disabled={!staff || loading} onClick={() => submitAssign(false)} variant="outline" data-testid="assign-modal-assign-task-btn">
-                Assign Task
-              </Button>
-              <Button disabled={!staff || loading} onClick={() => submitAssign(true)} className="bg-beet hover:bg-beet-hover text-bone" data-testid="assign-modal-assign-and-notify-btn">
-                Assign and Notify
+              <Button disabled={loading} onClick={submitAssign} className="bg-beet hover:bg-beet-hover text-bone" data-testid="assign-modal-submit-btn">
+                {loading ? "Assigning…" : "Assign Task"}
               </Button>
             </div>
           </div>

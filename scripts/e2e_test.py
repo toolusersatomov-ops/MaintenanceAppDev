@@ -60,8 +60,10 @@ def main():
         r = requests.get(f"{BASE}/alerts?status=Open", headers=auth(sup_token))
         r.raise_for_status()
         alerts = r.json()
-        if alerts:
-            return alerts[0]
+        singles = [a for a in alerts if a.get("alert_type") == "Low Stock" and not a.get("awareness_only")
+                   and len(a.get("related_slot_ids") or [1]) == 1]
+        if singles:
+            return singles[0]
         r = requests.post(f"{BASE}/alerts/ensure", headers=auth(sup_token), json={"machine_id": "M003", "slot_id": "M003-P2"})
         r.raise_for_status()
         alert_id = r.json()["id"]

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import random
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
@@ -103,8 +104,11 @@ async def ensure_alert(body: dict, user: dict = Depends(require_roles(*ANY_SUPER
 
 
 class AssignBody(BaseModel):
-    operations_staff: str
-    create_kitchen_ticket: bool = True
+    operations_staff: Optional[str] = None
+    start_time: Optional[str] = None
+    due_time: Optional[str] = None
+    priority: Optional[str] = "Medium"
+    comment: Optional[str] = None
 
 
 class AssignStaffBody(BaseModel):
@@ -202,6 +206,24 @@ async def assign_alert(alert_id: str, body: AssignBody, user: dict = Depends(req
     if alert.get("awareness_only"):
         raise HTTPException(status_code=400, detail="This is an awareness alert. Monitor the level - no replacement task is required yet.")
 
+    staff = body.operations_staff
+    auto_assigned = False
+    if not staff:
+        candidates = await db.users.find({"role": "operations_staff", "is_locked": {"$ne": True},
+                                           "assigned_machines": alert["machine_id"]}).to_list(50)
+        if not candidates:
+            candidates = await db.users.find({"role": "operations_staff", "is_locked": {"$ne": True}}).to_list(50)
+        if not candidates:
+            raise HTTPException(status_code=400, detail="No available Operations Staff to assign")
+        staff = random.choice(candidates)["username"]
+        auto_assigned = True
+
+    schedule = {}
+    if body.start_time:
+        schedule["start_time"] = body.start_time
+    if body.due_time:
+        schedule["due_time"] = body.due_time
+
     related = alert.get("related_slot_ids") or [alert["slot_id"]]
     if len(related) > 1:
         # Combined consumable alert (e.g. WWC2+WWC3 or WC1+WC2): one task per can, no kitchen step
@@ -209,32 +231,40 @@ async def assign_alert(alert_id: str, body: AssignBody, user: dict = Depends(req
         for slot_id in related:
             r = await create_replacement_pipeline(
                 machine_id=alert["machine_id"], slot_id=slot_id, created_by=user["username"],
-                assigned_operations_staff=body.operations_staff, alert_id=alert_id, source="alert",
-                kitchen_required=False, comment=alert.get("alert_message"),
+                assigned_operations_staff=staff, alert_id=alert_id, source="alert",
+                kitchen_required=False, priority=body.priority or alert.get("priority", "Medium"),
+                comment=body.comment or alert.get("alert_message"),
             )
             results.append(r)
+            if schedule:
+                await db.bin_replacement_tasks.update_one({"id": r["bin_replacement_task_id"]}, {"$set": schedule})
         await db.alerts.update_one({"id": alert_id}, {"$set": {
-            "status": "Assigned", "assigned_operations_staff": body.operations_staff,
+            "status": "Assigned", "assigned_operations_staff": staff, **schedule,
             "waste_water_status": "Task Assigned" if alert.get("alert_type", "").startswith("Waste Water") else None,
             "bin_replacement_task_id": results[0]["bin_replacement_task_id"],
             "pickup_task_id": results[0]["pickup_task_id"],
             "kitchen_prep_request_id": results[0]["kitchen_prep_request_id"],
             "related_task_ids": [r["bin_replacement_task_id"] for r in results],
         }})
-        return {"message": f"Combined task assigned covering {len(related)} cans", "items": results}
+        msg = f"Combined task assigned to {staff}{' (auto-assigned)' if auto_assigned else ''} covering {len(related)} cans"
+        return {"message": msg, "assigned_to": staff, "items": results}
 
     result = await create_replacement_pipeline(
         machine_id=alert["machine_id"], slot_id=alert["slot_id"], created_by=user["username"],
-        assigned_operations_staff=body.operations_staff, alert_id=alert_id, source="alert",
+        assigned_operations_staff=staff, alert_id=alert_id, source="alert",
+        priority=body.priority or alert.get("priority", "Medium"), comment=body.comment,
     )
+    if schedule:
+        await db.bin_replacement_tasks.update_one({"id": result["bin_replacement_task_id"]}, {"$set": schedule})
 
     await db.alerts.update_one({"id": alert_id}, {"$set": {
-        "status": "Assigned", "assigned_operations_staff": body.operations_staff,
+        "status": "Assigned", "assigned_operations_staff": staff, **schedule,
         "bin_replacement_task_id": result["bin_replacement_task_id"],
         "pickup_task_id": result["pickup_task_id"],
         "kitchen_prep_request_id": result["kitchen_prep_request_id"],
     }})
-    return {"message": "Task assigned and Kitchen ticket created", **result}
+    kitchen_note = " and Kitchen Fill Ticket created" if result.get("kitchen_required") else ""
+    return {"message": f"Task assigned to {staff}{' (auto-assigned)' if auto_assigned else ''}{kitchen_note}", "assigned_to": staff, **result}
 
 
 @router.post("/{alert_id}/acknowledge")

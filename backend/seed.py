@@ -96,8 +96,21 @@ async def seed_recipes():
         }}, upsert=True)
 
 
-def _bin_id(prefix, code, n=None):
-    return f"BIN-{prefix}-{code}" + (f"-{n}" if n is not None else "")
+OTHER_BIN_SUBTYPE = {"ICE": "IB", "CAN": "CD", "LID": "LD", "WC1": "WC", "WC2": "WC",
+                     "SN1": "SN", "WWC1": "WWC", "WWC2": "WWC", "WWC3": "WWC"}
+_BIN_SEQ = {}
+
+
+def next_bin_id(category, code=None):
+    """Machine-agnostic bin nomenclature: BIN-SOLID-01, BIN-LIQUID-01, BIN-POWDER-01,
+    BIN-OTHER-IB-01 / -CD- / -LD- / -WC- / -SN- / -WWC-."""
+    if category == "Other":
+        sub = OTHER_BIN_SUBTYPE.get(code, "GEN")
+        key, prefix = f"OTHER-{sub}", f"BIN-OTHER-{sub}"
+    else:
+        key, prefix = category.upper(), f"BIN-{category.upper()}"
+    _BIN_SEQ[key] = _BIN_SEQ.get(key, 0) + 1
+    return f"{prefix}-{_BIN_SEQ[key]:02d}"
 
 
 async def _create_bin(bin_id, bin_type, status, current_ingredient=None, previous_ingredient=None,
@@ -119,6 +132,7 @@ async def seed_slots_and_bins():
     existing = await db.machine_slots.count_documents({})
     if existing > 0:
         return
+    _BIN_SEQ.clear()
     for m in MACHINES:
         mid = m["id"]
         problems = dict(PROBLEM_SLOTS.get(mid, []))
@@ -126,8 +140,8 @@ async def seed_slots_and_bins():
             slot_id = f"{mid}-{code}"
             capacity = capacity_for(code)
             issue = problems.get(code)
-            bin_id = _bin_id(mid, code)
             bin_type = CATEGORY_OF[code]
+            bin_id = next_bin_id(bin_type, code)
 
             expiry_days = 30
             due_days = 14
@@ -166,10 +180,11 @@ async def seed_slots_and_bins():
             }}, upsert=True)
 
     # Spare bin pool for Kitchen circulation (clean bins ready for filling)
-    for category, count in [("Liquid", 6), ("Powder", 6), ("Solid", 6), ("Other", 4)]:
-        for n in range(1, count + 1):
-            bin_id = f"BIN-SPARE-{category.upper()}-{n}"
-            await _create_bin(bin_id, category, "Clean / Ready for Filling", location="Kitchen Storage")
+    for category, count in [("Liquid", 6), ("Powder", 6), ("Solid", 6)]:
+        for _ in range(count):
+            await _create_bin(next_bin_id(category), category, "Clean / Ready for Filling", location="Kitchen Storage")
+    for code in ["WC1", "WC1", "WWC1", "WWC1"]:
+        await _create_bin(next_bin_id("Other", code), "Other", "Clean / Ready for Filling", location="Kitchen Storage")
 
 
 async def seed_alerts():
@@ -422,3 +437,5 @@ async def reset_and_reseed():
     for c in collections:
         await db[c].delete_many({})
     await run_seed()
+    from consumables import evaluate_consumable_alerts
+    await evaluate_consumable_alerts()

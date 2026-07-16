@@ -131,3 +131,10 @@ Supervisor sees Alert â†’ Assign Operations Staff + Create Kitchen Fill Ticket â
 4. CIP photo optional (backend CleaningStepBody.photo Optional, required for all steps EXCEPT CIP).
 5. Bin Filling: 'I confirm the bin is clean' checkbox removed (frontend + backend clean_confirmed validation removed; QR scan validates cleanliness).
 Tested: e2e 29/29 pass, alerts verified via curl, kitchen card + CIP flow verified via browser screenshots.
+
+## Update Batch (2026-07-16) - Assign Task consolidation + Bin nomenclature
+1. Alert actions: 3 buttons replaced by single 'Assign Task' -> popup (staff optional dropdown, start/due datetime, priority, comment). POST /api/alerts/{id}/assign now: auto-assigns RANDOM available ops staff (machine-scoped first) when none chosen; always creates Kitchen Fill Ticket via pipeline; stores start_time/due_time on alert + tasks; passes priority/comment. Email Kitchen kept for escalation only. Old endpoints assign-staff-only / create-kitchen-ticket-only remain in backend but unused by UI.
+2. Bin nomenclature (machine-agnostic): BIN-SOLID-XX / BIN-LIQUID-XX / BIN-POWDER-XX / BIN-OTHER-{IB,CD,LD,WC,SN,WWC}-XX via next_bin_id() in seed.py (counters reset per seeding). Spare pool: 6 Liquid/Powder/Solid + 2 WC + 2 WWC. Demo bins: BIN-SOLID-98/99, BIN-LIQUID-99. QR = QR-{bin_id}. All 225 bins conform after reset.
+3. reset_and_reseed now also runs evaluate_consumable_alerts() so combined alerts exist after mid-session Demo Reset.
+4. e2e_test.py updated: selects a single-slot Low Stock alert (not combined). 29/29 pass.
+Tested: auto-assign + explicit + combined assign via curl; UI modal verified via screenshot; bin conformity checked via regex against DB.

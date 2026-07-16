@@ -92,7 +92,7 @@ async def _seed_completed_task_demo():
     if not slot:
         return
     brt_id, pt_id, kpr_id = "DEMO-BRT-001", "DEMO-PT-001", "DEMO-KPR-001"
-    old_bin, new_bin = "BIN-DEMO-OLD-1", "BIN-DEMO-NEW-1"
+    old_bin, new_bin = "BIN-SOLID-98", "BIN-SOLID-99"
 
     for bin_id, status, location, ingredient in [
         (old_bin, "Dirty / Returned from Machine", "Kitchen", "S8"),
@@ -168,7 +168,7 @@ async def _seed_cleaning_bins_demo():
     """A second dirty bin just returned to kitchen (start of cleaning lifecycle)."""
     if await db.dirty_bin_returns.find_one({"id": "DEMO-DIRTY-002"}):
         return
-    bin_id = "BIN-DEMO-OLD-2"
+    bin_id = "BIN-LIQUID-99"
     await db.bin_qr_master.update_one({"id": bin_id}, {"$set": {
         "id": bin_id, "bin_id": bin_id, "qr_code_id": f"QR-{bin_id}", "bin_type": "Liquid",
     }}, upsert=True)
@@ -231,7 +231,7 @@ async def _seed_activity_logs():
     entries = [
         ("operations_sup01", "operations_supervisor", "Login", {}, 180),
         ("operations_sup01", "operations_supervisor", "Assigned bin replacement task", {"task_id": "DEMO-BRT-001", "machine_id": "M003"}, 150),
-        ("kitchen01", "kitchen_staff", "Saved filled bin", {"bin_id": "BIN-DEMO-NEW-1", "machine_id": "M003"}, 95),
+        ("kitchen01", "kitchen_staff", "Saved filled bin", {"bin_id": "BIN-SOLID-99", "machine_id": "M003"}, 95),
         ("operations01", "operations_staff", "Completed bin replacement", {"task_id": "DEMO-BRT-001"}, 35),
         ("operations01", "operations_staff", "Login", {}, 10),
         ("kitchen01", "kitchen_staff", "Login", {}, 5),
