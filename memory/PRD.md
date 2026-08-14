@@ -138,3 +138,45 @@ Tested: e2e 29/29 pass, alerts verified via curl, kitchen card + CIP flow verifi
 3. reset_and_reseed now also runs evaluate_consumable_alerts() so combined alerts exist after mid-session Demo Reset.
 4. e2e_test.py updated: selects a single-slot Low Stock alert (not combined). 29/29 pass.
 Tested: auto-assign + explicit + combined assign via curl; UI modal verified via screenshot; bin conformity checked via regex against DB.
+
+---
+
+## Change Note #5 — Maintenance Extension (June 2026) — DONE
+
+Scope: build the **Maintenance Technician** and **Maintenance Supervisor** modules only.
+Kitchen Staff, Operations Staff, Operations Supervisor and Admin remain **finalized / locked** (regression-checked, unchanged).
+Maintenance reuses shared master data: machine IDs + `M001 – Gachibowli` labels, standardized bin IDs
+(`BIN-SOLID/LIQUID/POWDER-xx`, `BIN-OTHER-{IB,CD,LD,WC,SN,WWC}-xx`), slot codes, ingredient names and units.
+Readable IDs: `WO-0001`, `PM-0001`, `CAL-0001`, `TA-0001`, `ESC-0001`, `SPR-0001`, `DG-0001`.
+
+### Backend
+- `maint_constants.py` — 30 diagnostic checks, 31-step PM checklist, 25 technical alert types (component + error code + suggested action), 19 component categories, 8 input / 13 output component tests, 7 calibration types, 15-part spare catalog, ±5% tolerance, health bands.
+- `maint_core.py` — sequential IDs, activity log, WO timeline stages, technical alert creation, calibration variance maths, `recalc_health()` technical health score (0–100 → Healthy/Warning/Critical/Down + Under Maintenance), PM status refresh, service-history writer, technician workload.
+- `routers/maintenance.py` (`/api/maintenance/*`) — technician: dashboard (11 KPIs), machines + machine detail, work orders + full stage machine (`action`, `verify-qr` MQR-<machine_id>, `flag`, `comment`), diagnostics, component tests, repairs, calibrations + calibration-targets, PM start/step/submit, my-parts, parts-replacement, parts-usage, spare-part requests + receive, panel access, service history, notifications, activity logs.
+- `routers/maint_sup.py` (`/api/maintenance-sup/*`) — supervisor: dashboard (16 KPIs), technical alerts (create WO, email staff, escalate, guarded acknowledge), work orders (create, assign/auto-assign lowest workload, priority, due, comment, escalate, review approve/return/reopen), live progress, PM planner, calibration monitoring + assign recalibration, workload, spare parts inventory + adjust, spare part approvals (approve/reject/issue), escalations, review queue.
+- `seed_maint.py` — rich idempotent mock data: 14 technical alerts, 7 work orders across every stage, 5 PM schedules (Scheduled/Due/Overdue), 8 calibration records (incl. FAILs), spare parts store + technician kits, escalation, service history, panel logs.
+- `routers/reports.py` — 12 maintenance reports (added Fault Frequency, Calibration Report, Component Failure, MTTR) + technician/component/priority/status row filters and CSV export.
+- `seed_constants.py` — added `tech02`, `tech03`; all three technicians see all 5 machines.
+
+### Frontend
+- Technician (13 menu items): Dashboard, My Machines, Assigned Work Orders, Machine Diagnostics, Preventive Maintenance, Breakdown Repair, Calibration & Testing, Component Testing, Parts Replacement, Spare Parts, Door / Panel Access, Service History, Notifications.
+- Supervisor (14 menu items): Dashboard, Technical Alerts, Machine Health Center, Work Orders, Assign Technician, Live Maintenance Progress, PM Planner, Calibration Monitoring, Technician Workload, Spare Parts Inventory, Spare Parts Approvals, Maintenance Reports, Escalations, Notifications.
+- Shared helpers in `components/maint/` (useMaint, InfoGrid, WorkOrderRows, PhotoCapture); StatusBadge extended with maintenance statuses. Existing app styling reused throughout.
+
+### Enforced business rules
+- Work cannot start until the scanned machine QR matches the work order.
+- Failed diagnostic check → comment mandatory. Repair → before + after photo mandatory.
+- Calibration PASS/FAIL is system-calculated (±5%, load-cell zero check ±2 g); FAIL requires a comment and raises a Calibration Failure alert.
+- Component testing required before Submit for Supervisor Review; technician cannot close work orders.
+- Critical / Machine Down alerts cannot be closed without a work order or documented resolution.
+- Supervisor approval closes the WO and cascades to machine health, service history, spare parts, workload, reports and activity log.
+
+### Testing
+- `/app/backend/tests/test_maintenance_e2e.py` — 36 cases, 35 pass / 1 conditional skip (iteration_3.json). Run: `python3 -m pytest backend/tests/test_maintenance_e2e.py -v`.
+- UI verified: alert → work order → accept/travel/reached → wrong QR rejected → correct QR verified → calibration auto FAIL + mandatory comment; regression smoke on kitchen01 / operations01 / operations_sup01 passed.
+
+### Backlog (P2)
+- Field-by-field parity check of Kitchen `BinFilling.jsx` against the original spec (if requested).
+- Show each Operations staff member's open task count in the Ops Supervisor assign dropdown.
+- Maintenance: technician mobile-first layout, spare-parts reorder purchase flow, downtime cost analytics.
+

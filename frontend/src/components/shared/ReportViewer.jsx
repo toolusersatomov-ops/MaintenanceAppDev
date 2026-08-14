@@ -9,33 +9,33 @@ import api, { API } from "@/lib/api";
 
 // Shared report viewer used by Operations Supervisor, Maintenance Supervisor, and Admin Reports Hub.
 // reportList: [[key, label], ...]
-export default function ReportViewer({ reportList, testId }) {
+export default function ReportViewer({ reportList, testId, extraFilters = [] }) {
   const [activeKey, setActiveKey] = useState(reportList?.[0]?.[0] || "");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [machineId, setMachineId] = useState("");
+  const [extra, setExtra] = useState({});
   const [report, setReport] = useState(null);
 
   useEffect(() => {
     if (reportList?.length && !activeKey) setActiveKey(reportList[0][0]);
   }, [reportList, activeKey]);
 
+  const buildParams = () => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.set("date_from", dateFrom);
+    if (dateTo) params.set("date_to", dateTo);
+    if (machineId) params.set("machine_id", machineId);
+    Object.entries(extra).forEach(([k, v]) => v && params.set(k, v));
+    return params;
+  };
+
   useEffect(() => {
     if (!activeKey) return;
-    const params = new URLSearchParams();
-    if (dateFrom) params.set("date_from", dateFrom);
-    if (dateTo) params.set("date_to", dateTo);
-    if (machineId) params.set("machine_id", machineId);
-    api.get(`/reports/${activeKey}?${params.toString()}`).then(({ data }) => setReport(data));
-  }, [activeKey, dateFrom, dateTo, machineId]);
+    api.get(`/reports/${activeKey}?${buildParams().toString()}`).then(({ data }) => setReport(data));
+  }, [activeKey, dateFrom, dateTo, machineId, extra]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const exportUrl = () => {
-    const params = new URLSearchParams();
-    if (dateFrom) params.set("date_from", dateFrom);
-    if (dateTo) params.set("date_to", dateTo);
-    if (machineId) params.set("machine_id", machineId);
-    return `${API}/reports/${activeKey}/export?${params.toString()}`;
-  };
+  const exportUrl = () => `${API}/reports/${activeKey}/export?${buildParams().toString()}`;
 
   return (
     <div data-testid={testId || "report-viewer"}>
@@ -51,6 +51,18 @@ export default function ReportViewer({ reportList, testId }) {
         <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-bone w-40" data-testid="report-date-from" />
         <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="bg-bone w-40" data-testid="report-date-to" />
         <Input placeholder="Machine ID (optional)" value={machineId} onChange={(e) => setMachineId(e.target.value)} className="bg-bone w-48" data-testid="report-machine-filter" />
+        {extraFilters.map((f) => (
+          <select
+            key={f.key}
+            value={extra[f.key] || ""}
+            onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}
+            data-testid={`report-filter-${f.key}`}
+            className="h-10 rounded-md border border-clay/50 bg-bone px-3 text-sm text-ink"
+          >
+            <option value="">{f.label}</option>
+            {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        ))}
         <a href={exportUrl()} download data-testid="report-export-csv-btn">
           <Button variant="outline"><Download className="h-4 w-4 mr-2" /> Export CSV</Button>
         </a>

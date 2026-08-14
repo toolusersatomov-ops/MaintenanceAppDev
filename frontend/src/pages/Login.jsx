@@ -13,6 +13,8 @@ const DEMO_ACCOUNTS = [
   { username: "operations02", label: "Operations Staff (M004-M005)" },
   { username: "operations_sup01", label: "Operations Supervisor" },
   { username: "tech01", label: "Maintenance Technician" },
+  { username: "tech02", label: "Maintenance Technician" },
+  { username: "tech03", label: "Maintenance Technician" },
   { username: "maintenance_sup01", label: "Maintenance Supervisor" },
   { username: "admin01", label: "Admin" },
 ];

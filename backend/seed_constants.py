@@ -33,7 +33,9 @@ USERS_SEED = [
     {"username": "operations01", "password": "1234", "role": "operations_staff", "name": "Anil Verma", "email": "operations01@proteinhulk.com", "assigned_machines": ["M001", "M002", "M003"]},
     {"username": "operations02", "password": "1234", "role": "operations_staff", "name": "Suresh Reddy", "email": "operations02@proteinhulk.com", "assigned_machines": ["M004", "M005"]},
     {"username": "operations_sup01", "password": "1234", "role": "operations_supervisor", "name": "Priya Sharma", "email": "ops_sup@proteinhulk.com", "assigned_machines": []},
-    {"username": "tech01", "password": "1234", "role": "maintenance_technician", "name": "Vikram Singh", "email": "tech01@proteinhulk.com", "assigned_machines": []},
+    {"username": "tech01", "password": "1234", "role": "maintenance_technician", "name": "Vikram Singh", "email": "tech01@proteinhulk.com", "assigned_machines": ["M001", "M002", "M003", "M004", "M005"]},
+    {"username": "tech02", "password": "1234", "role": "maintenance_technician", "name": "Imran Sheikh", "email": "tech02@proteinhulk.com", "assigned_machines": ["M001", "M002", "M003", "M004", "M005"]},
+    {"username": "tech03", "password": "1234", "role": "maintenance_technician", "name": "Deepak Rao", "email": "tech03@proteinhulk.com", "assigned_machines": ["M001", "M002", "M003", "M004", "M005"]},
     {"username": "maintenance_sup01", "password": "1234", "role": "maintenance_supervisor", "name": "Ravi Patel", "email": "maint_sup@proteinhulk.com", "assigned_machines": []},
     {"username": "admin01", "password": "1234", "role": "admin", "name": "System Admin", "email": "admin@proteinhulk.com", "assigned_machines": []},
 ]
@@ -211,9 +213,11 @@ OPERATIONS_REPORTS = [
 ]
 MAINTENANCE_REPORTS = [
     ("work_order_summary", "Work Order Summary"), ("machine_downtime", "Machine Downtime"),
-    ("pm_compliance", "Preventive Maintenance Compliance"), ("technician_productivity", "Technician Productivity"),
-    ("spare_parts_usage", "Spare Parts Usage"), ("repeated_failure", "Repeated Failure"),
-    ("machine_health_score", "Machine Health Score"), ("repair_turnaround", "Repair Turnaround Time"),
+    ("fault_frequency", "Fault Frequency"), ("repeated_failure", "Repeated Failure"),
+    ("pm_compliance", "PM Compliance"), ("calibration_report", "Calibration Report"),
+    ("technician_productivity", "Technician Productivity"), ("spare_parts_usage", "Spare Parts Usage"),
+    ("repair_turnaround", "Repair Turnaround Time"), ("mttr", "Mean Time to Repair"),
+    ("machine_health_score", "Machine Health"), ("component_failure", "Component Failure Report"),
 ]
 
 DRINK_NAMES = [r["name"] for r in RECIPES]

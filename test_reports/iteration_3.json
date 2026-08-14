@@ -1,0 +1,52 @@
+{
+  "summary": "Full E2E validation of the newly added Maintenance Technician + Maintenance Supervisor modules. Backend: created /app/backend/tests/test_maintenance_e2e.py with 36 pytest cases; 35 PASSED + 1 SKIPPED (skip = no critical alert without WO available at run-time — expected). The suite auto-resets seed data via /api/admin/mock-data/reset before running so it is stable across re-runs. Frontend: verified login + sidebar + KPI navigation for both new roles. Supervisor sidebar has all 14 items and 16 KPI cards; Technician sidebar has all 13 items and 11 KPI cards. Every page renders (no 'coming soon', no error banners). Door/Panel Access exposes panel-open-* and panel-close-* testids for Right/Left/Back doors and Service Panel. Legacy Kitchen/Operations/Operations-Supervisor endpoints still respond 200.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_maintenance_e2e.py",
+    "/app/test_reports/pytest/maintenance_e2e.xml"
+  ],
+  "action_items": [
+    "Documentation mismatch (not a bug): the data-testids listed in the review request differ slightly from the actual code. Please align docs so future test writers don't have to guess. Actual values are: Technician sidebar uses `sidebar-link-assigned-work-orders` (not `work-orders`) and `sidebar-link-machine-diagnostics` (not `diagnostics`). Maintenance Supervisor sidebar uses `sidebar-link-machine-health-center`, `sidebar-link-live-maintenance-progress`, `sidebar-link-preventive-maintenance-planner`, `sidebar-link-maintenance-reports` (not `machine-health`, `live-progress`, `pm-planner`, `reports`).",
+    "CORS in backend/.env is still `CORS_ORIGINS=\"*\"` — carried over from previous iterations, not a new regression."
+  ],
+  "critical_code_review_comments": [
+    "maintenance.py verify-qr: format is MQR-<machine_id>; mismatch returns exact 'Scanned machine does not match this work order.' message — verified.",
+    "maintenance.py action(): Start Diagnosis / Start Repair are blocked with 400 when qr_verified is false — verified.",
+    "maintenance.py action(): Submit for Supervisor Review is blocked when no component_tests exist for that WO (checks work_order_id filter) — verified.",
+    "maintenance.py diagnostics: any 'Fail' item without a comment returns 400 with the failed component name; WO status is set to 'Diagnosis Completed' on success — verified.",
+    "maintenance.py repairs: before_photo AND after_photo both mandatory; QR-verified precondition enforced — verified.",
+    "maintenance.py calibrations: PASS/FAIL is auto-calculated (calc_calibration) with 5% tolerance; FAIL without comment returns 400; FAIL creates a Calibration Failure technical alert and sets recalibration_required=true — verified.",
+    "maintenance.py parts-replacement: decrements technician_parts.available_qty, increments used_qty, decrements central inventory total_stock and assigned_qty, records spare_parts_usage entry, and adds parts_used history to WO — verified.",
+    "maintenance.py spare-parts-requests + /receive: technician receive flips SPR from Issued → Received, adds/updates technician_parts, transitions WO back to 'Repair In Progress' — verified.",
+    "maintenance.py pm-tasks/{id}/step: physical-step Pass without an after_photo returns 400; pm-tasks/{id}/submit blocks while any step is Not Started — verified.",
+    "maintenance.py flag: empty/whitespace comment returns 400; success creates an ESC-xxxx escalation and pushes 'Technician Flag' into history — verified.",
+    "maint_sup.py create-work-order-from-alert: assigns technician, ties WO to alert, notifies technician with title 'New Work Order Assigned', bumps machine status to Under Maintenance for High/Critical — verified.",
+    "maint_sup.py review approve: sets WO Closed, writes service_history, resolves linked technical alert, marks calibration FAIL records as recalibrated, restores machine status (Running or Warning depending on remaining alerts) — verified.",
+    "maint_sup.py acknowledge alert: Critical/Machine Down alerts without work_order_id AND empty resolution_note are rejected with the exact expected error message — verified.",
+    "maint_sup.py PM planner: create_pm auto-assigns technician if none provided, creates PM-xxxx + WO-xxxx pair, notifies technician — verified.",
+    "maint_sup.py spare-parts-inventory adjust: increments/decrements total_stock atomically; reorder_status derived from min_stock — verified.",
+    "Machine labels use `M001 – Gachibowli` format (via machine_label()) across all endpoints including calibration records — verified.",
+    "Standardized bin IDs (BIN-LIQUID-* / BIN-SOLID-* / etc.) are what calibration-targets and calibration-monitoring emit — verified.",
+    "SPR reception path in maintenance.py:817 correctly upserts technician_parts even for a first-time part.",
+    "maint_sup.py:404 acknowledgement flow: returning status is set to 'Resolved' if resolution_note provided else 'Acknowledged' — reasonable but consider explicitly recording acknowledged_at even when Resolved (currently it does set it).",
+    "maintenance.py:203 filter `active` overrides an explicitly-passed `status` param (last-wins) — minor UX quirk, worth documenting or making mutually exclusive."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_maintenance_e2e.py (new)"
+  ],
+  "success_rate": {
+    "backend": "97% (35/36; 1 skip is expected when no open critical alert without WO exists at run time)",
+    "frontend": "100% of sidebar / KPI / page-render smoke checks"
+  },
+  "test_credentials": "See /app/memory/test_credentials.md — all passwords are 1234. Test suite uses maintenance_sup01, tech01, tech02, tech03, admin01 (to reset), kitchen01, operations01, operations_sup01.",
+  "seed_data_creation": "Autouse module-scoped fixture calls POST /api/admin/mock-data/reset once at start so the WO-0001..0007 seeds and the open Pump Failure alert on M001 are guaranteed present. All test artifacts (WOs, SPRs, calibrations, escalations, panel access logs, replacement rows) use TEST_-prefixed comments so they are easy to identify.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Re-run backend: `python3 -m pytest backend/tests/test_maintenance_e2e.py -v -n 0 --junitxml=/app/test_reports/pytest/maintenance_e2e.xml`. The suite is stateful (it walks a real WO through the full lifecycle end-to-end using /api/admin/mock-data/reset for a clean slate). Ordering matters inside TestMainE2E; do not use xdist. If you need to add UI Playwright coverage, note that the actual data-testids differ from the review-request cheatsheet — see the action_items entry for the corrected sidebar testid list. The maintenance flow requires MQR-<machine_id> QR codes and mock:// photo URLs are accepted.",
+  "rca of the issue": "N/A — no new bugs found. The three sidebar testid mismatches (machine-health-center / live-maintenance-progress / preventive-maintenance-planner / maintenance-reports for supervisor, and assigned-work-orders / machine-diagnostics for technician) are code-vs-doc drift only — the UI is fully functional under the actual testids."
+}

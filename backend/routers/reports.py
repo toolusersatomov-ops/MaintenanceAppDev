@@ -139,13 +139,18 @@ async def report_work_order_summary(date_from, date_to, machine_id):
     by_status = defaultdict(int)
     for o in orders:
         by_status[o["status"]] += 1
-    rows = [{"machine": o["machine_label"], "title": o["title"], "type": o["type"], "status": o["status"], "priority": o["priority"]} for o in orders]
-    kpis = [{"label": k, "value": v} for k, v in by_status.items()] or [{"label": "Total", "value": 0}]
-    return kpis, ["machine", "title", "type", "status", "priority"], rows
+    rows = [{"work_order": o.get("wo_id"), "machine": o["machine_label"], "issue": o.get("issue_type"),
+             "work_type": o.get("work_type"), "component": o.get("component"), "technician": o.get("assigned_technician"),
+             "status": o["status"], "priority": o["priority"], "created_at": o["created_at"]} for o in orders]
+    kpis = [{"label": "Total Work Orders", "value": len(orders)},
+            {"label": "Closed", "value": by_status.get("Closed", 0)},
+            {"label": "Pending Review", "value": by_status.get("Pending Supervisor Review", 0)},
+            {"label": "Waiting for Parts", "value": by_status.get("Waiting for Parts", 0)}]
+    return kpis, ["work_order", "machine", "issue", "work_type", "component", "technician", "status", "priority", "created_at"], rows
 
 
 async def report_machine_downtime(date_from, date_to, machine_id):
-    q = {"type": "Breakdown"}
+    q = {"work_type": {"$in": ["Breakdown", "Emergency Visit"]}}
     if machine_id:
         q["machine_id"] = machine_id
     orders = await db.maintenance_work_orders.find(q).to_list(1000)
@@ -154,19 +159,51 @@ async def report_machine_downtime(date_from, date_to, machine_id):
         start = datetime.fromisoformat(o["created_at"])
         end = datetime.fromisoformat(o["closed_at"]) if o.get("closed_at") else datetime.now(timezone.utc)
         hours = round((end - start).total_seconds() / 3600, 1)
-        rows.append({"machine": o["machine_label"], "title": o["title"], "status": o["status"], "downtime_hours": hours})
-    kpis = [{"label": "Total Downtime (hrs)", "value": round(sum(r["downtime_hours"] for r in rows), 1)}]
-    return kpis, ["machine", "title", "status", "downtime_hours"], rows
+        rows.append({"work_order": o.get("wo_id"), "machine": o["machine_label"], "issue": o.get("issue_type"),
+                     "status": o["status"], "downtime_hours": hours})
+    kpis = [{"label": "Total Downtime (hrs)", "value": round(sum(r["downtime_hours"] for r in rows), 1)},
+            {"label": "Breakdown Events", "value": len(rows)}]
+    return kpis, ["work_order", "machine", "issue", "status", "downtime_hours"], rows
+
+
+async def report_fault_frequency(date_from, date_to, machine_id):
+    q = {"machine_id": machine_id} if machine_id else {}
+    alerts = await db.technical_alerts.find(q).to_list(1000)
+    counter = defaultdict(int)
+    for a in alerts:
+        counter[(a["machine_label"], a["alert_type"])] += 1
+    rows = [{"machine": k[0], "fault": k[1], "occurrences": v} for k, v in sorted(counter.items(), key=lambda x: -x[1])]
+    kpis = [{"label": "Total Faults", "value": len(alerts)}, {"label": "Distinct Fault Types", "value": len({a['alert_type'] for a in alerts})}]
+    return kpis, ["machine", "fault", "occurrences"], rows
 
 
 async def report_pm_compliance(date_from, date_to, machine_id):
     q = {"machine_id": machine_id} if machine_id else {}
     items = await db.preventive_maintenance_schedules.find(q).to_list(200)
-    overdue = len([i for i in items if i["status"] == "Overdue"])
-    rows = [{"machine": i["machine_label"], "next_due": i["next_due_date"], "status": i["status"], "last_completed": i.get("last_completed_date")} for i in items]
+    overdue = len([i for i in items if i.get("status") == "Overdue"])
+    completed = len([i for i in items if i.get("status") == "Completed"])
+    rows = [{"pm": i.get("pm_id"), "machine": i["machine_label"], "pm_type": i.get("pm_type"),
+             "frequency": i.get("frequency"), "technician": i.get("technician"), "due_at": i.get("due_at"),
+             "status": i.get("status"), "last_completed": i.get("last_completed_at")} for i in items]
     kpis = [{"label": "Total Schedules", "value": len(items)}, {"label": "Overdue", "value": overdue},
+            {"label": "Completed", "value": completed},
             {"label": "Compliance %", "value": round((len(items) - overdue) / len(items) * 100, 1) if items else 0}]
-    return kpis, ["machine", "next_due", "status", "last_completed"], rows
+    return kpis, ["pm", "machine", "pm_type", "frequency", "technician", "due_at", "status", "last_completed"], rows
+
+
+async def report_calibration_report(date_from, date_to, machine_id):
+    q = {"machine_id": machine_id} if machine_id else {}
+    items = await db.calibration_records.find(q).sort("created_at", -1).to_list(1000)
+    rows = [{"calibration": c.get("cal_id"), "machine": c["machine_label"], "slot": c.get("slot_id"),
+             "bin_id": c.get("bin_id"), "item": c.get("item"), "type": c.get("calibration_type"),
+             "expected": c.get("expected_quantity"), "actual": c.get("actual_quantity"), "unit": c.get("unit"),
+             "variance_pct": c.get("variance_pct"), "result": c.get("result"), "technician": c.get("technician"),
+             "date": c.get("created_at")} for c in items]
+    failed = len([r for r in rows if r["result"] == "FAIL"])
+    kpis = [{"label": "Calibrations", "value": len(rows)}, {"label": "Failed", "value": failed},
+            {"label": "Pass %", "value": round((len(rows) - failed) / len(rows) * 100, 1) if rows else 0}]
+    return kpis, ["calibration", "machine", "slot", "bin_id", "item", "type", "expected", "actual", "unit",
+                  "variance_pct", "result", "technician", "date"], rows
 
 
 async def report_technician_productivity(date_from, date_to, machine_id):
@@ -174,39 +211,71 @@ async def report_technician_productivity(date_from, date_to, machine_id):
     rows = []
     for t in technicians:
         closed = await db.maintenance_work_orders.count_documents({"assigned_technician": t["username"], "status": "Closed"})
-        active = await db.maintenance_work_orders.count_documents({"assigned_technician": t["username"], "status": {"$ne": "Closed"}})
-        rows.append({"technician": t["username"], "closed_work_orders": closed, "active_work_orders": active})
-    kpis = [{"label": "Technicians", "value": len(rows)}]
-    return kpis, ["technician", "closed_work_orders", "active_work_orders"], rows
+        active = await db.maintenance_work_orders.count_documents({"assigned_technician": t["username"], "status": {"$nin": ["Closed"]}})
+        cals = await db.calibration_records.count_documents({"technician": t["username"]})
+        parts = await db.spare_parts_usage.count_documents({"technician": t["username"]})
+        rows.append({"technician": t["username"], "name": t.get("name"), "closed_work_orders": closed,
+                     "active_work_orders": active, "calibrations": cals, "parts_replaced": parts})
+    kpis = [{"label": "Technicians", "value": len(rows)},
+            {"label": "Total Closed", "value": sum(r["closed_work_orders"] for r in rows)}]
+    return kpis, ["technician", "name", "closed_work_orders", "active_work_orders", "calibrations", "parts_replaced"], rows
 
 
 async def report_spare_parts_usage(date_from, date_to, machine_id):
-    reqs = await db.spare_parts_requests.find({"status": "Approved"}).to_list(500)
-    by_part = defaultdict(int)
-    for r in reqs:
-        by_part[r["part_name"]] += r["quantity"]
-    rows = [{"part_name": k, "quantity_used": v} for k, v in sorted(by_part.items(), key=lambda x: -x[1])]
-    kpis = [{"label": "Approved Requests", "value": len(reqs)}]
-    return kpis, ["part_name", "quantity_used"], rows
+    q = {"machine_id": machine_id} if machine_id else {}
+    usage = await db.spare_parts_usage.find(q).sort("created_at", -1).to_list(1000)
+    rows = [{"part_code": u.get("part_code"), "part_name": u["part_name"], "machine": u["machine_label"],
+             "work_order": u.get("work_order_ref"), "component": u.get("component"), "quantity": u["quantity"],
+             "technician": u.get("technician"), "date": u.get("created_at")} for u in usage]
+    kpis = [{"label": "Replacements", "value": len(rows)},
+            {"label": "Units Consumed", "value": sum(r["quantity"] for r in rows)}]
+    return kpis, ["part_code", "part_name", "machine", "work_order", "component", "quantity", "technician", "date"], rows
 
 
 async def report_repeated_failure(date_from, date_to, machine_id):
-    orders = await db.maintenance_work_orders.find({"type": "Breakdown"}).to_list(1000)
-    by_machine_title = defaultdict(int)
+    q = {"work_type": {"$in": ["Breakdown", "Emergency Visit"]}}
+    if machine_id:
+        q["machine_id"] = machine_id
+    orders = await db.maintenance_work_orders.find(q).to_list(1000)
+    counter = defaultdict(int)
     for o in orders:
-        by_machine_title[(o["machine_label"], o["title"])] += 1
-    rows = [{"machine": k[0], "issue": k[1], "occurrences": v} for k, v in by_machine_title.items() if v > 0]
-    rows.sort(key=lambda x: -x["occurrences"])
+        counter[(o["machine_label"], o.get("component") or "Other", o.get("issue_type"))] += 1
+    rows = [{"machine": k[0], "component": k[1], "issue": k[2], "occurrences": v}
+            for k, v in sorted(counter.items(), key=lambda x: -x[1])]
     kpis = [{"label": "Repeated Issues (>1x)", "value": len([r for r in rows if r["occurrences"] > 1])}]
-    return kpis, ["machine", "issue", "occurrences"], rows
+    return kpis, ["machine", "component", "issue", "occurrences"], rows
+
+
+async def report_component_failure(date_from, date_to, machine_id):
+    q = {"machine_id": machine_id} if machine_id else {}
+    orders = await db.maintenance_work_orders.find(q).to_list(1000)
+    diags = await db.machine_diagnostics.find(q).to_list(500)
+    counter = defaultdict(lambda: {"work_orders": 0, "failed_checks": 0})
+    for o in orders:
+        if o.get("component"):
+            counter[o["component"]]["work_orders"] += 1
+    for d in diags:
+        for item in d.get("items", []):
+            if item.get("status") == "Fail":
+                counter[item["component"]]["failed_checks"] += 1
+    rows = [{"component": k, "work_orders": v["work_orders"], "failed_diagnostics": v["failed_checks"],
+             "total_events": v["work_orders"] + v["failed_checks"]}
+            for k, v in sorted(counter.items(), key=lambda x: -(x[1]["work_orders"] + x[1]["failed_checks"]))]
+    kpis = [{"label": "Components With Failures", "value": len(rows)},
+            {"label": "Total Failure Events", "value": sum(r["total_events"] for r in rows)}]
+    return kpis, ["component", "work_orders", "failed_diagnostics", "total_events"], rows
 
 
 async def report_machine_health_score(date_from, date_to, machine_id):
     q = {"machine_id": machine_id} if machine_id else {}
     items = await db.machine_health_logs.find(q).to_list(50)
-    rows = [{"machine": i["machine_label"], "health_score": i["health_score"], "open_alerts": i["open_technical_alerts"], "open_work_orders": i["open_work_orders"]} for i in items]
-    kpis = [{"label": "Avg Health Score", "value": round(sum(r["health_score"] for r in rows) / len(rows), 1) if rows else 0}]
-    return kpis, ["machine", "health_score", "open_alerts", "open_work_orders"], rows
+    rows = [{"machine": i["machine_label"], "health_score": i["health_score"],
+             "health_status": i.get("health_status"), "active_alerts": i.get("active_alerts", 0),
+             "open_work_orders": i.get("open_work_orders", 0), "overdue_pm": i.get("overdue_pm", 0),
+             "downtime_minutes": i.get("downtime_minutes", 0)} for i in items]
+    kpis = [{"label": "Avg Health Score", "value": round(sum(r["health_score"] for r in rows) / len(rows), 1) if rows else 0},
+            {"label": "Machines Down", "value": len([r for r in rows if r["health_status"] == "Down"])}]
+    return kpis, ["machine", "health_score", "health_status", "active_alerts", "open_work_orders", "overdue_pm", "downtime_minutes"], rows
 
 
 async def report_repair_turnaround(date_from, date_to, machine_id):
@@ -221,9 +290,29 @@ async def report_repair_turnaround(date_from, date_to, machine_id):
         start = datetime.fromisoformat(o["created_at"])
         end = datetime.fromisoformat(o["closed_at"])
         hours = round((end - start).total_seconds() / 3600, 1)
-        rows.append({"machine": o["machine_label"], "title": o["title"], "turnaround_hours": hours})
-    kpis = [{"label": "Avg Turnaround (hrs)", "value": round(sum(r["turnaround_hours"] for r in rows) / len(rows), 1) if rows else 0}]
-    return kpis, ["machine", "title", "turnaround_hours"], rows
+        rows.append({"work_order": o.get("wo_id"), "machine": o["machine_label"], "issue": o.get("issue_type"),
+                     "technician": o.get("assigned_technician"), "turnaround_hours": hours})
+    kpis = [{"label": "Avg Turnaround (hrs)", "value": round(sum(r["turnaround_hours"] for r in rows) / len(rows), 1) if rows else 0},
+            {"label": "Closed Work Orders", "value": len(rows)}]
+    return kpis, ["work_order", "machine", "issue", "technician", "turnaround_hours"], rows
+
+
+async def report_mttr(date_from, date_to, machine_id):
+    q = {"status": "Closed", "work_type": {"$in": ["Breakdown", "Emergency Visit"]}}
+    if machine_id:
+        q["machine_id"] = machine_id
+    orders = await db.maintenance_work_orders.find(q).to_list(1000)
+    by_machine = defaultdict(list)
+    for o in orders:
+        if not o.get("closed_at"):
+            continue
+        hours = (datetime.fromisoformat(o["closed_at"]) - datetime.fromisoformat(o["created_at"])).total_seconds() / 3600
+        by_machine[o["machine_label"]].append(hours)
+    rows = [{"machine": k, "repairs": len(v), "mttr_hours": round(sum(v) / len(v), 1)} for k, v in sorted(by_machine.items())]
+    overall = [h for v in by_machine.values() for h in v]
+    kpis = [{"label": "Fleet MTTR (hrs)", "value": round(sum(overall) / len(overall), 1) if overall else 0},
+            {"label": "Repairs Analysed", "value": len(overall)}]
+    return kpis, ["machine", "repairs", "mttr_hours"], rows
 
 
 REGISTRY = {
@@ -233,26 +322,46 @@ REGISTRY = {
     "work_order_summary": report_work_order_summary, "machine_downtime": report_machine_downtime, "pm_compliance": report_pm_compliance,
     "technician_productivity": report_technician_productivity, "spare_parts_usage": report_spare_parts_usage,
     "repeated_failure": report_repeated_failure, "machine_health_score": report_machine_health_score, "repair_turnaround": report_repair_turnaround,
+    "fault_frequency": report_fault_frequency, "calibration_report": report_calibration_report,
+    "component_failure": report_component_failure, "mttr": report_mttr,
 }
+
+
+def _apply_row_filters(rows, technician=None, component=None, priority=None, status=None):
+    filters = {"technician": technician, "component": component, "priority": priority, "status": status}
+    active = {k: v for k, v in filters.items() if v}
+    if not active:
+        return rows
+    out = []
+    for r in rows:
+        if all(str(r.get(k, "")).lower() == str(v).lower() for k, v in active.items() if k in r):
+            out.append(r)
+    return out
 
 
 @router.get("/{report_key}")
 async def get_report(report_key: str, date_from: Optional[str] = None, date_to: Optional[str] = None,
-                      machine_id: Optional[str] = None, user: dict = Depends(get_current_user)):
+                      machine_id: Optional[str] = None, technician: Optional[str] = None,
+                      component: Optional[str] = None, priority: Optional[str] = None,
+                      status: Optional[str] = None, user: dict = Depends(get_current_user)):
     fn = REGISTRY.get(report_key)
     if not fn:
         raise HTTPException(status_code=404, detail="Unknown report")
     kpis, columns, rows = await fn(date_from, date_to, machine_id)
+    rows = _apply_row_filters(rows, technician, component, priority, status)
     return {"report_key": report_key, "kpis": kpis, "columns": columns, "rows": rows}
 
 
 @router.get("/{report_key}/export")
 async def export_report(report_key: str, date_from: Optional[str] = None, date_to: Optional[str] = None,
-                         machine_id: Optional[str] = None, user: dict = Depends(get_current_user)):
+                         machine_id: Optional[str] = None, technician: Optional[str] = None,
+                         component: Optional[str] = None, priority: Optional[str] = None,
+                         status: Optional[str] = None, user: dict = Depends(get_current_user)):
     fn = REGISTRY.get(report_key)
     if not fn:
         raise HTTPException(status_code=404, detail="Unknown report")
     _, columns, rows = await fn(date_from, date_to, machine_id)
+    rows = _apply_row_filters(rows, technician, component, priority, status)
     buf = io.StringIO()
     writer = csv.DictWriter(buf, fieldnames=columns)
     writer.writeheader()

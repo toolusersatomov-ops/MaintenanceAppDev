@@ -41,22 +41,26 @@ import SupReports from "@/pages/supervisor/Reports";
 import UserAccessManagement from "@/pages/supervisor/UserAccessManagement";
 
 import TechDashboard from "@/pages/technician/Dashboard";
+import TechMyMachines from "@/pages/technician/MyMachines";
 import TechWorkOrders from "@/pages/technician/WorkOrders";
 import TechDiagnostics from "@/pages/technician/Diagnostics";
 import TechPreventiveMaintenance from "@/pages/technician/PreventiveMaintenance";
 import BreakdownRepair from "@/pages/technician/BreakdownRepair";
 import PartsReplacement from "@/pages/technician/PartsReplacement";
 import CalibrationTesting from "@/pages/technician/CalibrationTesting";
+import ComponentTesting from "@/pages/technician/ComponentTesting";
 import DoorPanelAccess from "@/pages/technician/DoorPanelAccess";
-import SparePartsRequest from "@/pages/technician/SparePartsRequest";
-import TechHistory from "@/pages/technician/History";
+import TechSpareParts from "@/pages/technician/SpareParts";
+import TechServiceHistory from "@/pages/technician/ServiceHistory";
 import TechNotifications from "@/pages/technician/Notifications";
 
 import MSDashboard from "@/pages/maintSup/Dashboard";
 import TechnicalAlerts from "@/pages/maintSup/TechnicalAlerts";
 import MSWorkOrders from "@/pages/maintSup/WorkOrders";
 import AssignTechnician from "@/pages/maintSup/AssignTechnician";
+import LiveMaintenanceProgress from "@/pages/maintSup/LiveProgress";
 import PMPlanner from "@/pages/maintSup/PMPlanner";
+import CalibrationMonitoring from "@/pages/maintSup/CalibrationMonitoring";
 import MachineHealth from "@/pages/maintSup/MachineHealth";
 import TechnicianWorkload from "@/pages/maintSup/TechnicianWorkload";
 import SparePartsInventory from "@/pages/maintSup/SparePartsInventory";
@@ -125,25 +129,29 @@ function AppRoutes() {
 
       <Route element={<ProtectedRoute roles={["maintenance_technician"]}><DashboardLayout /></ProtectedRoute>}>
         <Route path="/technician/dashboard" element={<TechDashboard />} />
+        <Route path="/technician/my-machines" element={<TechMyMachines />} />
         <Route path="/technician/work-orders" element={<TechWorkOrders />} />
         <Route path="/technician/diagnostics" element={<TechDiagnostics />} />
         <Route path="/technician/preventive-maintenance" element={<TechPreventiveMaintenance />} />
         <Route path="/technician/breakdown-repair" element={<BreakdownRepair />} />
-        <Route path="/technician/parts-replacement" element={<PartsReplacement />} />
         <Route path="/technician/calibration-testing" element={<CalibrationTesting />} />
+        <Route path="/technician/component-testing" element={<ComponentTesting />} />
+        <Route path="/technician/parts-replacement" element={<PartsReplacement />} />
+        <Route path="/technician/spare-parts" element={<TechSpareParts />} />
         <Route path="/technician/door-panel-access" element={<DoorPanelAccess />} />
-        <Route path="/technician/spare-parts-request" element={<SparePartsRequest />} />
-        <Route path="/technician/history" element={<TechHistory />} />
+        <Route path="/technician/service-history" element={<TechServiceHistory />} />
         <Route path="/technician/notifications" element={<TechNotifications />} />
       </Route>
 
       <Route element={<ProtectedRoute roles={["maintenance_supervisor"]}><DashboardLayout /></ProtectedRoute>}>
         <Route path="/maintenance-supervisor/dashboard" element={<MSDashboard />} />
         <Route path="/maintenance-supervisor/technical-alerts" element={<TechnicalAlerts />} />
+        <Route path="/maintenance-supervisor/machine-health" element={<MachineHealth />} />
         <Route path="/maintenance-supervisor/work-orders" element={<MSWorkOrders />} />
         <Route path="/maintenance-supervisor/assign-technician" element={<AssignTechnician />} />
+        <Route path="/maintenance-supervisor/live-progress" element={<LiveMaintenanceProgress />} />
         <Route path="/maintenance-supervisor/pm-planner" element={<PMPlanner />} />
-        <Route path="/maintenance-supervisor/machine-health" element={<MachineHealth />} />
+        <Route path="/maintenance-supervisor/calibration-monitoring" element={<CalibrationMonitoring />} />
         <Route path="/maintenance-supervisor/technician-workload" element={<TechnicianWorkload />} />
         <Route path="/maintenance-supervisor/spare-parts-inventory" element={<SparePartsInventory />} />
         <Route path="/maintenance-supervisor/spare-parts-approvals" element={<SparePartsApprovals />} />

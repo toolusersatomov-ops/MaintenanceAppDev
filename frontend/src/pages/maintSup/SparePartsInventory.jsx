@@ -1,41 +1,49 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Minus } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
-import DataTable from "@/components/shared/DataTable";
 import StatusBadge from "@/components/shared/StatusBadge";
-import api from "@/lib/api";
+import DataTable from "@/components/shared/DataTable";
+import { useToast } from "@/hooks/use-toast";
+import api, { formatApiError } from "@/lib/api";
 
 export default function SparePartsInventory() {
   const [rows, setRows] = useState([]);
-  const load = () => api.get("/maintenance/spare-parts-inventory").then(({ data }) => setRows(data));
-  useEffect(() => { load(); }, []);
+  const { toast } = useToast();
 
-  const adjust = async (id, delta) => {
-    await api.post(`/maintenance/spare-parts-inventory/${id}/adjust`, { delta });
-    load();
+  const load = useCallback(() => { api.get("/maintenance-sup/spare-parts-inventory").then(({ data }) => setRows(data)); }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const adjust = async (part, delta) => {
+    try {
+      const { data } = await api.post(`/maintenance-sup/spare-parts-inventory/${part.id}/adjust`, { delta });
+      toast({ title: data.message });
+      load();
+    } catch (e) {
+      toast({ title: "Failed", description: formatApiError(e), variant: "destructive" });
+    }
   };
+
+  const columns = [
+    { key: "part_code", label: "Part Code", mono: true },
+    { key: "part_name", label: "Part Name" },
+    { key: "category", label: "Category" },
+    { key: "total_stock", label: "Total Stock" },
+    { key: "assigned_qty", label: "Assigned to Technicians" },
+    { key: "available_stock", label: "Available Stock" },
+    { key: "min_stock", label: "Minimum Stock" },
+    { key: "reorder_status", label: "Reorder Status", render: (r) => <StatusBadge status={r.reorder_status} /> },
+    { key: "actions", label: "Adjust", render: (r) => (
+        <div className="flex gap-1">
+          <Button size="sm" variant="outline" onClick={() => adjust(r, 5)} data-testid={`stock-add-${r.part_code}`}>+5</Button>
+          <Button size="sm" variant="outline" onClick={() => adjust(r, -1)} data-testid={`stock-remove-${r.part_code}`}>-1</Button>
+        </div>
+      ) },
+  ];
 
   return (
     <div data-testid="spare-parts-inventory-page">
-      <PageHeader title="Spare Parts Inventory" description="Stock levels for spare parts across the fleet" />
-      <DataTable
-        testId="spare-parts-inventory-table"
-        columns={[
-          { key: "name", label: "Part" },
-          { key: "stock", label: "Stock", mono: true, render: (r) => (
-            <span className="flex items-center gap-2">
-              <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => adjust(r.id, -1)} data-testid={`decrease-stock-${r.id}`}><Minus className="h-3 w-3" /></Button>
-              {r.stock}
-              <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => adjust(r.id, 1)} data-testid={`increase-stock-${r.id}`}><Plus className="h-3 w-3" /></Button>
-            </span>
-          ) },
-          { key: "reorder_level", label: "Reorder Level", mono: true },
-          { key: "unit_cost", label: "Unit Cost", mono: true, render: (r) => `\u20b9${r.unit_cost}` },
-          { key: "status", label: "Status", render: (r) => <StatusBadge status={r.stock <= r.reorder_level ? "Low Stock" : "Normal"} /> },
-        ]}
-        rows={rows}
-      />
+      <PageHeader title="Spare Parts Inventory" description="Central spare parts store with technician allocations and reorder status" />
+      <DataTable columns={columns} rows={rows} testId="spare-parts-inventory-table" emptyText="No spare parts in the store." />
     </div>
   );
 }

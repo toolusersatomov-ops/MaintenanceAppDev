@@ -48,6 +48,8 @@ async def seed_users():
     for u in USERS_SEED:
         existing = await db.users.find_one({"username": u["username"]})
         if existing:
+            if u["role"] == "maintenance_technician" and existing.get("assigned_machines") != u["assigned_machines"]:
+                await db.users.update_one({"username": u["username"]}, {"$set": {"assigned_machines": u["assigned_machines"]}})
             continue
         await db.users.insert_one({
             "id": new_id(),
@@ -402,8 +404,8 @@ async def seed_settings():
         "kitchen_staff": ["Dashboard", "Preparation Requests", "Bin Filling", "Bin Storage", "Scanned Bin History", "Change Requests", "Cleaning Bins", "Notifications"],
         "operations_staff": ["Dashboard", "Assigned Machines", "Pickup List", "Bin Replacement Tasks", "Bins", "Door Control", "Cleaning & Sanitization", "Dirty Bin Return", "Replacement History", "Notifications"],
         "operations_supervisor": ["Dashboard", "Machine Control Center", "Alerts", "Pre-Schedule Tasks", "Pre-Schedule Bulk Replacements", "Task Assignment", "Live Task Progress", "Kitchen Preparation Status", "Operations Staff Tasks", "Reports", "User & Access Management"],
-        "maintenance_technician": ["Dashboard", "Assigned Work Orders", "Machine Diagnostics", "Preventive Maintenance", "Breakdown Repair", "Parts Replacement", "Calibration & Testing", "Door / Panel Access", "Spare Parts Request", "Maintenance History", "Notifications"],
-        "maintenance_supervisor": ["Dashboard", "Technical Alerts", "Work Orders", "Assign Technician", "Preventive Maintenance Planner", "Machine Health Center", "Technician Workload", "Spare Parts Inventory", "Spare Parts Approvals", "Maintenance Reports", "Escalations", "Notifications"],
+        "maintenance_technician": ["Dashboard", "My Machines", "Assigned Work Orders", "Machine Diagnostics", "Preventive Maintenance", "Breakdown Repair", "Calibration & Testing", "Component Testing", "Parts Replacement", "Spare Parts", "Door / Panel Access", "Service History", "Notifications"],
+        "maintenance_supervisor": ["Dashboard", "Technical Alerts", "Machine Health Center", "Work Orders", "Assign Technician", "Live Maintenance Progress", "Preventive Maintenance Planner", "Calibration Monitoring", "Technician Workload", "Spare Parts Inventory", "Spare Parts Approvals", "Maintenance Reports", "Escalations", "Notifications"],
         "admin": ["Admin Dashboard", "User & Access Management", "Role Permissions", "Machine Master", "Ingredient Master", "Recipe Master", "Maintenance Master", "Spare Parts Master", "Reports Hub", "Audit Logs", "System Settings", "Mock Data Management"],
     }
     for role, pages in default_perms.items():
@@ -412,6 +414,7 @@ async def seed_settings():
 
 async def run_seed():
     from seed_demo import seed_demo_data
+    from seed_maint import seed_maintenance_data
     await seed_users()
     await seed_machines()
     await seed_ingredients()
@@ -419,7 +422,7 @@ async def run_seed():
     await seed_slots_and_bins()
     await seed_alerts()
     await seed_sales()
-    await seed_maintenance()
+    await seed_maintenance_data()
     await seed_settings()
     await seed_demo_data()
 
@@ -433,6 +436,9 @@ async def reset_and_reseed():
         "maintenance_work_orders", "preventive_maintenance_schedules", "machine_diagnostics",
         "spare_parts_inventory", "spare_parts_requests", "technician_workload", "machine_health_logs",
         "technical_alerts", "admin_audit_logs", "escalations", "change_requests",
+        "technician_parts", "spare_parts_usage", "calibration_records", "component_tests",
+        "service_history", "maintenance_activity_logs", "panel_access_logs", "maint_counters",
+        "cip_records",
     ]
     for c in collections:
         await db[c].delete_many({})
